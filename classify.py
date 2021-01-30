@@ -13,17 +13,32 @@ import time
 import psutil
 import os
 
+import tensorflow_addons as tfa
+
 # New Imports
 import warnings
 
+from typeguard import typechecked
+
 matplotlib.use("TkAgg")
-myo.init('X:\\Sapientia-EMTE\\Szakmai Gyakorlat\\v2\\HIMO\\myo64.dll')
+myo.init(os.getcwd() + '\\myo64.dll')
+
 global data_array
+data_array = []
+
+number_of_samples = 200  # change this
+Sensor1 = np.zeros((1, number_of_samples))
+Sensor2 = np.zeros((1, number_of_samples))
+Sensor3 = np.zeros((1, number_of_samples))
+Sensor4 = np.zeros((1, number_of_samples))
+Sensor5 = np.zeros((1, number_of_samples))
+Sensor6 = np.zeros((1, number_of_samples))
+Sensor7 = np.zeros((1, number_of_samples))
+Sensor8 = np.zeros((1, number_of_samples))
 
 
 # This class from Myo-python SDK listens to EMG signals from armband
 class Listener(myo.DeviceListener):
-    number_of_samples = 1000
 
     def __init__(self, n):
         self.n = n
@@ -42,7 +57,7 @@ class Listener(myo.DeviceListener):
         with self.lock:
             self.emg_data_queue.append(event.emg)
 
-            if len(list(self.emg_data_queue)) >= self.n:
+            if len(list(self.emg_data_queue)) >= number_of_samples:
                 data_array.append(list(self.emg_data_queue))
                 self.emg_data_queue.clear()
                 return False
@@ -51,7 +66,7 @@ class Listener(myo.DeviceListener):
 # To check if myo process is running
 class MyoService:
     proc_name = "Myo Connect.exe"
-    path = 'C:\Program Files (x86)\Thalmic Labs\Myo Connect\Myo Connect.exe'
+    path = 'C:\\Program Files (x86)\\Thalmic Labs\\Myo Connect\\Myo Connect.exe'
 
     def __init__(self):
         self.hub = myo.Hub()
@@ -79,8 +94,8 @@ class MyoService:
         while not self.check_if_process_running():
             os.startfile(self.path)
             time.sleep(1)
-            while not self.check_if_process_running():
-                pass
+            # while not self.check_if_process_running():
+            #     pass
 
         print("MYO Process started")
         instructions = "MYO App started"
@@ -89,55 +104,62 @@ class MyoService:
 
 class ClassifyExercises:
     # region VARS
-    number_of_samples = 1000
-    _tiptoe_training_set = np.zeros((8, number_of_samples))
-    _toe_crunches_training_set = np.zeros((8, number_of_samples))
-    _rest_training_set = np.zeros((8, number_of_samples))
-
-    Sensor1 = np.zeros((1, number_of_samples))
-    Sensor2 = np.zeros((1, number_of_samples))
-    Sensor3 = np.zeros((1, number_of_samples))
-    Sensor4 = np.zeros((1, number_of_samples))
-    Sensor5 = np.zeros((1, number_of_samples))
-    Sensor6 = np.zeros((1, number_of_samples))
-    Sensor7 = np.zeros((1, number_of_samples))
-    Sensor8 = np.zeros((1, number_of_samples))
-
-    validation_set = np.zeros((8, number_of_samples))
-    training_set = np.zeros((8, number_of_samples))
-
-    div = 50  # every 50 batch ( 1000/50 -> 20 data )
-    averages = int(number_of_samples / div)
-
-    tiptoe_averages = np.zeros((int(averages), 8))
-    toe_crunches_averages = np.zeros((int(averages), 8))
-    rest_averages = np.zeros((int(averages), 8))
-
-    # Define number of exercises
-    number_of_gestures = 3
-    # data_array = []
-
-    tiptoe_label = 0
-    toe_crunches_label = 1
-    rest_label = 2
 
     # Define current subject
     subject = ""
-    prepare_array = []  # for storing mean values
+    prepare_array = np.array([])  # for storing mean values
 
-    result_path = 'X:\\Sapientia-EMTE\\Szakmai Gyakorlat\\v2\\HIMO\\data\\results\\'
+    result_path = os.getcwd() + '\\data\\results\\'
     proc_name = "Myo Connect.exe"
 
-    listener = Listener(number_of_samples)
-    myoService = MyoService()
-
     # endregion
-    def __init__(self, subject):
+    @typechecked
+    def __init__(self,
+                 subject: str = 'Subject_Name',
+                 nr_of_samples: int = 1000,
+                 nr_of_gestures: int = 3,
+                 batch_size: int = 50):
+        # Define number of exercises
+        self.number_of_gestures = nr_of_gestures
+
+        tiptoe_label = 0
+        toe_crunches_label = 1
+        left_crunches_label = 2
+        right_crunches_label = 3
+        rest_label = 4
+
+        self.div = batch_size  # every 50 batch ( 1000/50 -> 20 data )
+        self.averages = int(nr_of_samples / batch_size)
+
+        self.all_training_set = {}
+        self.all_averages = {}
+
+        for i in range(0, nr_of_gestures):
+            self.all_training_set[i] = np.zeros((8, number_of_samples))
+            self.all_averages[i] = np.zeros((int(self.averages), 8))
+
+        self.training_data_path = 'training_data\\'
+        self.trained_model_path = 'trained_model\\'
         self.subject = subject
+        self.number_of_samples = nr_of_samples
+
+        # self._tiptoe_training_set = np.zeros((8, number_of_samples))
+        # self._toe_crunches_training_set = np.zeros((8, number_of_samples))
+        # self._rest_training_set = np.zeros((8, number_of_samples))
+
+        self.validation_set = np.zeros((8, number_of_samples))
+        self.training_set = np.zeros((8, number_of_samples))
+
+        # self.tiptoe_averages = np.zeros((int(self.averages), 8))
+        # self.toe_crunches_averages = np.zeros((int(self.averages), 8))
+        # self.rest_averages = np.zeros((int(self.averages), 8))
+
+        self.listener = Listener(number_of_samples)
+        self.myoService = MyoService()
         print("init")
 
     def PrepareTrainingData(self):
-
+        # global data_array
         # This function kills Myo Connect.exe and restarts it to make sure it is running
         # Because sometimes the application does not run even when Myo Connect process is running
         # So i think its a good idea to just kill if its not running and restart it
@@ -149,7 +171,7 @@ class ClassifyExercises:
         time.sleep(3)
 
         # Initialize the SDK of Myo Armband
-        myo.init('X:\\Sapientia-EMTE\\Szakmai Gyakorlat\\v2\\HIMO\\myo64.dll')
+        myo.init(os.getcwd() + '\\myo64.dll')
 
         # region TIPTOE_DATA
         instructions = "Stand on your toes!"
@@ -158,13 +180,15 @@ class ClassifyExercises:
         time.sleep(0.5)
         while True:
             try:
-                # listener = Listener(self.number_of_samples)
-                # input("Stand on your toes!")
-                self.myoService.hub.run(self.listener.on_event, 20000)
+                hub = myo.Hub()
+                listener = Listener(self.number_of_samples)
+                hub.run(listener.on_event, 20000)
+                print(len(data_array))
                 self._tiptoe_training_set = np.array((data_array[0]))
                 data_array.clear()
                 break
-            except:
+            except Exception as e:
+                print(e)
                 while not self.myoService.restart_process():
                     pass
                 # Wait for 3 seconds until Myo Connect.exe starts
@@ -185,10 +209,10 @@ class ClassifyExercises:
         time.sleep(1)
         while True:
             try:
-                # hub = myo.Hub()
-                # listener = Listener(self.number_of_samples)
+                hub = myo.Hub()
+                listener = Listener(self.number_of_samples)
                 # input("Crunch your toes!")
-                self.myoService.hub.run(self.listener.on_event, 20000)
+                hub.run(listener.on_event, 20000)
                 self._toe_crunches_training_set = np.array((data_array[0]))
                 data_array.clear()
                 break
@@ -214,7 +238,8 @@ class ClassifyExercises:
         while True:
             try:
                 hub = myo.Hub()
-                hub.run(self.listener.on_event, 20000)
+                listener = Listener(self.number_of_samples)
+                hub.run(listener.on_event, 20000)
                 self._rest_training_set = np.array((data_array[0]))
                 data_array.clear()
                 break
@@ -242,8 +267,11 @@ class ClassifyExercises:
 
         # This division is to make the iterator for making labels run 20 times in inner loop and 3 times in outer loop
         # running total 60 times for 3 foot gestures
+        if self.prepare_array.size == 0:
+            print("Loading data from disk!")
+            self.prepare_array = np.loadtxt(self.result_path + self.training_data_path + self.subject + '.txt')
+
         samples = self.prepare_array.shape[0] / self.number_of_gestures
-        print("Samples", samples)
 
         # Now we append all data in training label
         # We iterate to make 3 finger movement labels.
@@ -265,7 +293,7 @@ class ClassifyExercises:
         number_of_training_samples = np.int(np.floor(0.8 * total_samples))
         train_data = np.zeros((number_of_training_samples, 8))
         train_labels = np.zeros((number_of_training_samples, 8))
-        # print("TS ", number_of_training_samples, " S ", number_of_samples)
+
         number_of_validation_samples = np.int(total_samples - number_of_training_samples)
         train_data = all_shuffled_data[0:number_of_training_samples, :]
         train_labels = all_shuffled_labels[0:number_of_training_samples, ]
@@ -293,15 +321,19 @@ class ClassifyExercises:
 
         print("Fitting training data to the model...")
         instructions = "Fitting training data to the model..."
+        tqdm_callback = tfa.callbacks.TQDMProgressBar(
+            show_epoch_progress=False,
+            leave_epoch_progress=False
+        )
         history = model.fit(train_data, train_labels, epochs=300, validation_data=(validation_data, validation_labels),
-                            batch_size=16, verbose=0)
+                            batch_size=16, verbose=0, callbacks=[tqdm_callback])
 
         print("Saving model for later...")
-        save_path = self.result_path + self.subject + '_realistic_model.h5'
+        save_path = self.result_path + self.trained_model_path + self.subject + '_realistic_model.h5'
         model.save(save_path)
 
-        print(model.input_shape)
-        print(model.output_shape)
+        # print(model.input_shape)
+        # print(model.output_shape)
 
         instructions = "Training model successful!"
         print(instructions)
@@ -325,62 +357,85 @@ class ClassifyExercises:
                                                        axis=0)
 
             # Here we stack all the data row wise
-            # conc_array = np.concatenate([tiptoe_averages, heel_averages, toe_crunches_averages], axis=0)
             conc_array = np.concatenate([self.tiptoe_averages, self.toe_crunches_averages, self.rest_averages], axis=0)
-            print(conc_array.shape)
         try:
-            np.savetxt(self.result_path + self.subject + '.txt', conc_array, fmt='%i')
+            np.savetxt(self.result_path + self.training_data_path + self.subject + '.txt', conc_array, fmt='%i')
             instructions = "Saving training data successful!"
             print(instructions)
             self.prepare_array = conc_array
 
-        except:
+        except Exception as e:
+            print(e)
             instructions = "Saving training data failed!"
             print(instructions)
-            pass
 
     def PredictGestures(self):
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
+
         model = load_model(self.result_path + self.subject + '_realistic_model.h5')
 
-        # while not session_finished:
-        try:
-            print("Show a foot gesture and press ENTER to get its classification!")
-            self.myoService.hub.run(self.listener.on_event, 1000)
-            # Here we send the received number of samples making them a list of 1000 rows 8 columns
-            validation_set = np.array((data_array[0]))
-            data_array.clear()
+        while True:
+            # region PREDICT
+            try:
+                print("Show a foot gesture and press ENTER to get its classification!")
+                hub = myo.Hub()
+                listener = Listener(self.number_of_samples)
+                hub.run(listener.on_event, 10000)  # 1000 * 20 = 20000 for enough samples
+                # Here we send the received number of samples making them a list of 1000 rows 8 columns
+                self.validation_set = np.array((data_array[0]))
+                data_array.clear()
+            except Exception as e:
+                if hasattr(e, 'message'):
+                    print(e.message)
+                else:
+                    print(e)
+                pass
 
-        except Exception as e:
-            if hasattr(e, 'message'):
-                print(e.message)
+            self.validation_set = np.absolute(self.validation_set)
+            # print(self.validation_set.shape)
+
+            # We add one because iterator below starts from 1
+            batches = int(self.number_of_samples / self.div) + 1
+            for i in range(1, batches):
+                validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :], axis=0)
+
+            validation_data = validation_averages
+            # print("Verification matrix shape is ", validation_data.shape)
+
+            predictions = model.predict(validation_data, batch_size=16)
+            predicted_value = np.argmax(predictions[0])
+            if predicted_value == 0:
+                print("Tiptoe stand")
+            elif predicted_value == 1:
+                print("Toe Crunches ")
             else:
-                print(e)
-            pass
+                print("Rest gesture")
+            # endregion
+            time.sleep(1.5)  # pause
 
-        self.validation_set = np.absolute(self.validation_set)
 
-        # We add one because iterator below starts from 1
-        batches = int(self.number_of_samples / self.div) + 1
-        for i in range(1, batches):
-            validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :], axis=0)
+class CustomCallback(keras.callbacks.Callback):
 
-        validation_data = validation_averages
-        print("Verification matrix shape is ", validation_data.shape)
+    def on_epoch_begin(self, epoch, logs=None):
+        # keys = list(logs.keys())
+        # print("Start epoch {} of training; got log keys: {}".format(epoch, keys))
+        # print("Start epoch {} of training; counter: {}".format(epoch, epoch_counter))
+        pass
 
-        predictions = model.predict(validation_data, batch_size=16)
-        predicted_value = np.argmax(predictions[0])
-        if predicted_value == 0:
-            print("Tiptoe stand")
-        elif predicted_value == 1:
-            print("Toe Crunches ")
-        else:
-            print("Rest gesture")
+    def on_epoch_end(self, epoch, logs=None):
+        global epoch_counterpi
+        # keys = list(logs.keys())
+        epoch_counter = epoch + 1
+        # print("End epoch {} of training; got log keys: {}".format(epoch, epoch_counter))
 
 
 if __name__ == '__main__':
-    dummy = ClassifyExercises("Ervin")
+    dummy = ClassifyExercises(
+        subject="Ervin",
+        nr_of_samples=number_of_samples,
+        nr_of_gestures=5,
+        batch_size=10)
     dummy.PrepareTrainingData()
     dummy.TrainEMG()
     dummy.PredictGestures()
