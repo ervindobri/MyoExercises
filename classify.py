@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from collections import deque
+from enum import Enum
 from threading import Lock
 import matplotlib
 import numpy as np
@@ -39,6 +40,12 @@ Sensor6 = np.zeros((1, number_of_samples))
 Sensor7 = np.zeros((1, number_of_samples))
 Sensor8 = np.zeros((1, number_of_samples))
 
+
+class Exercise(Enum):
+    TIP_TOE = 1
+    TOE_CRUNCH = 2
+    TOES_UP = 3
+    REST = 3
 
 # This class from Myo-python SDK listens to EMG signals from armband
 class Listener(myo.DeviceListener):
