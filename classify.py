@@ -12,11 +12,14 @@ import myo
 import time
 import psutil
 import os
+import matplotlib.pyplot as plt
 
 import tensorflow_addons as tfa
 
 # New Imports
 import warnings
+import datetime as dt
+import pickle
 
 from typeguard import typechecked
 
@@ -118,25 +121,33 @@ class ClassifyExercises:
                  subject: str = 'Subject_Name',
                  nr_of_samples: int = 1000,
                  nr_of_gestures: int = 3,
-                 batch_size: int = 50):
-        # Define number of exercises
+                 all_labels=None,
+                 batch_size: int = 50,
+                 training_batch_size: int = 32,
+                 ):
+
+        if all_labels is None:
+            all_labels = ["Tip Toe", "Toe Crunches", "Left Lean", "Right Lean", "Rest"]
+
+        self.training_batch_size = training_batch_size
         self.number_of_gestures = nr_of_gestures
 
-        tiptoe_label = 0
-        toe_crunches_label = 1
-        left_crunches_label = 2
-        right_crunches_label = 3
-        rest_label = 4
+        # tiptoe_label = 0
+        # toe_crunches_label = 1
+        # left_lean_label = 2
+        # right_lean_label = 3
+        # rest_label = 4
+        self.all_labels = all_labels
 
         self.div = batch_size  # every 50 batch ( 1000/50 -> 20 data )
         self.averages = int(nr_of_samples / batch_size)
 
         self.all_training_set = {}
-        self.all_averages = {}
+        self.all_averages = []
 
         for i in range(0, nr_of_gestures):
             self.all_training_set[i] = np.zeros((8, number_of_samples))
-            self.all_averages[i] = np.zeros((int(self.averages), 8))
+            self.all_averages.append(np.zeros((int(self.averages), 8)))
 
         self.training_data_path = 'training_data\\'
         self.trained_model_path = 'trained_model\\'
@@ -173,89 +184,29 @@ class ClassifyExercises:
         # Initialize the SDK of Myo Armband
         myo.init(os.getcwd() + '\\myo64.dll')
 
-        # region TIPTOE_DATA
-        instructions = "Stand on your toes!"
-        print(instructions)
+        for x in range(0, self.number_of_gestures):
+            time.sleep(1)
+            instructions = self.all_labels[x]
+            print("Recording - ", instructions)
+            time.sleep(1)
+            while True:
+                try:
+                    hub = myo.Hub()
+                    listener = Listener(self.number_of_samples)
+                    hub.run(listener.on_event, 20000)
+                    self.all_training_set[x] = np.array((data_array[0]))
+                    data_array.clear()
+                    break
+                except:
+                    while not self.myoService.restart_process():
+                        pass
+                    # Wait for 3 seconds until Myo Connect.exe starts
+                    time.sleep(3)
 
-        time.sleep(0.5)
-        while True:
-            try:
-                hub = myo.Hub()
-                listener = Listener(self.number_of_samples)
-                hub.run(listener.on_event, 20000)
-                print(len(data_array))
-                self._tiptoe_training_set = np.array((data_array[0]))
-                data_array.clear()
-                break
-            except Exception as e:
-                print(e)
-                while not self.myoService.restart_process():
-                    pass
-                # Wait for 3 seconds until Myo Connect.exe starts
-                time.sleep(3)
+            instructions = self.all_labels[x]
+            print(instructions, "data ready")
 
-        # Here we send the received number of samples making them a list of 1000 rows 8 columns
-        # just how we need to feed to tensorflow
-        # endregion
-
-        # region TOE_CRUNCH_DATA
-        instructions = "Tip toe data ready!"
-        print(instructions)
-
-        time.sleep(1)
-        instructions = "Crunch your toes!"
-
-        print(instructions)
-        time.sleep(1)
-        while True:
-            try:
-                hub = myo.Hub()
-                listener = Listener(self.number_of_samples)
-                # input("Crunch your toes!")
-                hub.run(listener.on_event, 20000)
-                self._toe_crunches_training_set = np.array((data_array[0]))
-                data_array.clear()
-                break
-            except:
-                while not self.myoService.restart_process():
-                    pass
-                # Wait for 3 seconds until Myo Connect.exe starts
-                time.sleep(3)
-
-        instructions = "Toe crunch data ready!"
-        print(instructions)
-
-        time.sleep(1)
-
-        # endregion
-
-        # region REST_DATA
-        time.sleep(1)
-        instructions = "Rest your foot!"
-
-        print(instructions)
-        time.sleep(1)
-        while True:
-            try:
-                hub = myo.Hub()
-                listener = Listener(self.number_of_samples)
-                hub.run(listener.on_event, 20000)
-                self._rest_training_set = np.array((data_array[0]))
-                data_array.clear()
-                break
-            except:
-                while not self.myoService.restart_process():
-                    pass
-                # Wait for 3 seconds until Myo Connect.exe starts
-                time.sleep(3)
-
-        instructions = "Rest data ready!"
-        print(instructions)
-
-        time.sleep(1)
-
-        # endregion
-
+            time.sleep(1)
         # region POSTPROCESS_DATA
         self.calculateMeanData()
         # endregion
@@ -313,24 +264,28 @@ class ClassifyExercises:
             keras.layers.BatchNormalization(),
             keras.layers.Dense(self.number_of_gestures, activation=tf.nn.softmax)])
 
-        adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
-                                               amsgrad=False)
+        adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
         model.compile(optimizer=adam_optimizer,
                       loss='sparse_categorical_crossentropy',
                       metrics=['accuracy'])
 
         print("Fitting training data to the model...")
-        instructions = "Fitting training data to the model..."
         tqdm_callback = tfa.callbacks.TQDMProgressBar(
             show_epoch_progress=False,
+            leave_overall_progress=False,
             leave_epoch_progress=False
         )
         history = model.fit(train_data, train_labels, epochs=300, validation_data=(validation_data, validation_labels),
-                            batch_size=16, verbose=0, callbacks=[tqdm_callback])
+                            batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback])
 
         print("Saving model for later...")
         save_path = self.result_path + self.trained_model_path + self.subject + '_realistic_model.h5'
         model.save(save_path)
+
+        filepath = self.result_path + self.trained_model_path + self.subject + '-dump.dmp'
+        # os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, 'wb') as file_pi:
+            pickle.dump(history.history, file_pi)
 
         # print(model.input_shape)
         # print(model.output_shape)
@@ -342,22 +297,27 @@ class ClassifyExercises:
         # Absolutes of foot gesture data
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            self._tiptoe_training_set = np.absolute(self._tiptoe_training_set)
-            self._toe_crunches_training_set = np.absolute(self._toe_crunches_training_set)
-            self._rest_training_set = np.absolute(self._rest_training_set)
+            for x in range(0, self.number_of_gestures):
+                self.all_training_set[x] = np.absolute(self.all_training_set[x])
+            # self._tiptoe_training_set = np.absolute(self._tiptoe_training_set)
+            # self._toe_crunches_training_set = np.absolute(self._toe_crunches_training_set)
+            # self._rest_training_set = np.absolute(self._rest_training_set)
 
             # Here we are calculating the mean values of all foot exercise data storing them as n/50 samples
             # because 50 batches of n samples is equal to n/50 averages
             for i in range(1, self.averages + 1):
-                self.tiptoe_averages[i - 1, :] = np.mean(self._tiptoe_training_set[(i - 1) * self.div:i * self.div, :],
-                                                         axis=0)
-                self.toe_crunches_averages[i - 1, :] = np.mean(
-                    self._toe_crunches_training_set[(i - 1) * self.div:i * self.div, :], axis=0)
-                self.rest_averages[i - 1, :] = np.mean(self._rest_training_set[(i - 1) * self.div:i * self.div, :],
-                                                       axis=0)
+                for x in range(0, self.number_of_gestures):
+                    self.all_averages[x][i - 1, :] = np.mean(
+                        self.all_training_set[x][(i - 1) * self.div:i * self.div, :], axis=0)
+
+                # self.tiptoe_averages[i - 1, :] = np.mean(self._tiptoe_training_set[(i - 1) * self.div:i * self.div, :],
+                #                                          axis=0)
+                # self.toe_crunches_averages[i - 1, :] = np.mean(self._toe_crunches_training_set[(i - 1) * self.div:i * self.div, :], axis=0)
+                # self.rest_averages[i - 1, :] = np.mean(self._rest_training_set[(i - 1) * self.div:i * self.div, :],
+                #                                        axis=0)
 
             # Here we stack all the data row wise
-            conc_array = np.concatenate([self.tiptoe_averages, self.toe_crunches_averages, self.rest_averages], axis=0)
+            conc_array = np.concatenate(self.all_averages, axis=0)
         try:
             np.savetxt(self.result_path + self.training_data_path + self.subject + '.txt', conc_array, fmt='%i')
             instructions = "Saving training data successful!"
@@ -369,18 +329,60 @@ class ClassifyExercises:
             instructions = "Saving training data failed!"
             print(instructions)
 
-    def PredictGestures(self):
+    # This function plots results for validation and training data for a certain subject
+    def DisplayResults(self):
+        try:
+            filepath = self.result_path + self.trained_model_path + self.subject + '-dump.dmp'
+            print(filepath)
+            history = pickle.load(open(filepath, "rb"))
+            print("Model load successful")
+        except:
+            print("No such model exists! Please try again.")
+            return
+
+        f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+        # Here we display the training and test loss for model
+        ax1.plot(history['accuracy'])
+        ax1.plot(history['val_accuracy'])
+        ax1.set_title('model accuracy')
+        ax1.set_ylim((0, 1.05))
+        # ax1.c('accuracy')
+        ax1.set_xlabel('epoch')
+        ax1.legend(['train', 'test'], loc='lower right')
+        # ax1.show()
+        # summarize history for loss
+        ax2.plot(history['loss'])
+        ax2.plot(history['val_loss'])
+        ax2.set_title('model loss')
+        ax2.set_xlabel('loss')
+        ax2.set_xlabel('epoch')
+        ax2.legend(['train', 'test'], loc='upper right')
+        # print(result_path + str(dt.datetime.now()) + '-' + name + '-result')
+        fig = plt.gcf()
+        try:
+            save_file = (dt.datetime.now()).strftime("%Y-%m-%d-%H+%M+%S") + '=' + self.subject + '=result.png'
+            plt.savefig(os.getcwd() + '\\data\\figures\\' + save_file, bbox_inches='tight')
+            print(save_file + " :figure saved successfully!")
+            # Plot after saving to avoid a weird tkinter exception
+            plt.interactive(False)
+            plt.show()
+            # plt.close()
+        except Exception as e:
+            print(e)
+            pass
+
+    def PredictGestures(self, number_of_samples: int = number_of_samples):
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
 
-        model = load_model(self.result_path + self.subject + '_realistic_model.h5')
+        model = load_model(self.result_path + self.trained_model_path + self.subject + '_realistic_model.h5')
 
         while True:
             # region PREDICT
             try:
-                print("Show a foot gesture and press ENTER to get its classification!")
+                # print("Show a foot gesture and press ENTER to get its classification!")
                 hub = myo.Hub()
-                listener = Listener(self.number_of_samples)
+                listener = Listener(number_of_samples)
                 hub.run(listener.on_event, 10000)  # 1000 * 20 = 20000 for enough samples
                 # Here we send the received number of samples making them a list of 1000 rows 8 columns
                 self.validation_set = np.array((data_array[0]))
@@ -405,14 +407,9 @@ class ClassifyExercises:
 
             predictions = model.predict(validation_data, batch_size=16)
             predicted_value = np.argmax(predictions[0])
-            if predicted_value == 0:
-                print("Tiptoe stand")
-            elif predicted_value == 1:
-                print("Toe Crunches ")
-            else:
-                print("Rest gesture")
+            print(self.all_labels[predicted_value])
             # endregion
-            time.sleep(1.5)  # pause
+            time.sleep(.1)  # pause
 
 
 class CustomCallback(keras.callbacks.Callback):
@@ -431,11 +428,22 @@ class CustomCallback(keras.callbacks.Callback):
 
 
 if __name__ == '__main__':
+    # Exercises:
+    # 1. tip toe standing
+    # 2. toe crunches
+    # 3. toe stand - TOO similar to toe crunches
+    # 4. toes UP
+    # 5. rest
+
     dummy = ClassifyExercises(
         subject="Ervin",
         nr_of_samples=number_of_samples,
-        nr_of_gestures=5,
-        batch_size=10)
-    dummy.PrepareTrainingData()
-    dummy.TrainEMG()
-    dummy.PredictGestures()
+        nr_of_gestures=4,
+        all_labels=["Tip Toe", "Toe Crunches", "Toes UP", "Rest"],
+        batch_size=10,
+        training_batch_size=16
+    )
+    # dummy.PrepareTrainingData()
+    # dummy.TrainEMG()
+    # dummy.DisplayResults()
+    dummy.PredictGestures(200)
