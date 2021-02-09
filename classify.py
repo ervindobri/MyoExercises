@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import datetime
 from collections import deque
 from enum import Enum
 from threading import Lock
@@ -30,7 +31,7 @@ myo.init(os.getcwd() + '\\myo64.dll')
 global data_array
 data_array = []
 
-number_of_samples = 200  # change this
+number_of_samples = 100  # change this
 Sensor1 = np.zeros((1, number_of_samples))
 Sensor2 = np.zeros((1, number_of_samples))
 Sensor3 = np.zeros((1, number_of_samples))
@@ -46,6 +47,7 @@ class Exercise(Enum):
     TOE_CRUNCH = 2
     TOES_UP = 3
     REST = 3
+
 
 # This class from Myo-python SDK listens to EMG signals from armband
 class Listener(myo.DeviceListener):
@@ -128,12 +130,12 @@ class ClassifyExercises:
                  subject: str = 'Subject_Name',
                  nr_of_samples: int = 1000,
                  nr_of_gestures: int = 3,
-                 all_labels=None,
+                 exercise_labels=None,
                  batch_size: int = 50,
                  training_batch_size: int = 32,
                  ):
 
-        if all_labels is None:
+        if exercise_labels is None:
             all_labels = ["Tip Toe", "Toe Crunches", "Left Lean", "Right Lean", "Rest"]
 
         self.training_batch_size = training_batch_size
@@ -144,7 +146,7 @@ class ClassifyExercises:
         # left_lean_label = 2
         # right_lean_label = 3
         # rest_label = 4
-        self.all_labels = all_labels
+        self.exercise_labels = exercise_labels
 
         self.div = batch_size  # every 50 batch ( 1000/50 -> 20 data )
         self.averages = int(nr_of_samples / batch_size)
@@ -193,7 +195,7 @@ class ClassifyExercises:
 
         for x in range(0, self.number_of_gestures):
             time.sleep(1)
-            instructions = self.all_labels[x]
+            instructions = self.exercise_labels[x]
             print("Recording - ", instructions)
             time.sleep(1)
             while True:
@@ -204,13 +206,14 @@ class ClassifyExercises:
                     self.all_training_set[x] = np.array((data_array[0]))
                     data_array.clear()
                     break
-                except:
+                except Exception as e:
+                    print(e)
                     while not self.myoService.restart_process():
                         pass
                     # Wait for 3 seconds until Myo Connect.exe starts
                     time.sleep(3)
 
-            instructions = self.all_labels[x]
+            instructions = self.exercise_labels[x]
             print(instructions, "data ready")
 
             time.sleep(1)
@@ -271,7 +274,8 @@ class ClassifyExercises:
             keras.layers.BatchNormalization(),
             keras.layers.Dense(self.number_of_gestures, activation=tf.nn.softmax)])
 
-        adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
+                                               amsgrad=False)
         model.compile(optimizer=adam_optimizer,
                       loss='sparse_categorical_crossentropy',
                       metrics=['accuracy'])
@@ -383,14 +387,19 @@ class ClassifyExercises:
         validation_averages = np.zeros((int(self.averages), 8))
 
         model = load_model(self.result_path + self.trained_model_path + self.subject + '_realistic_model.h5')
-
-        while True:
+        start_time = 0
+        hub = myo.Hub()
+        average = 0.0
+        counter = 100
+        while counter > 0:
+            start_time = datetime.datetime.now()
             # region PREDICT
             try:
+
                 # print("Show a foot gesture and press ENTER to get its classification!")
-                hub = myo.Hub()
+
                 listener = Listener(number_of_samples)
-                hub.run(listener.on_event, 10000)  # 1000 * 20 = 20000 for enough samples
+                hub.run(listener.on_event, 20000)  # 1000 * 20 = 20000 for enough samples
                 # Here we send the received number of samples making them a list of 1000 rows 8 columns
                 self.validation_set = np.array((data_array[0]))
                 data_array.clear()
@@ -412,11 +421,19 @@ class ClassifyExercises:
             validation_data = validation_averages
             # print("Verification matrix shape is ", validation_data.shape)
 
-            predictions = model.predict(validation_data, batch_size=16)
+            predictions = model.predict(validation_data, batch_size=self.training_batch_size)
             predicted_value = np.argmax(predictions[0])
-            print(self.all_labels[predicted_value])
             # endregion
-            time.sleep(.1)  # pause
+            end_time = datetime.datetime.now()
+            execution_time = (end_time - start_time).total_seconds() * 1000
+            average += execution_time
+            print(execution_time)
+            print(self.exercise_labels[predicted_value])
+            time.sleep(.5)
+            counter -= 1
+        average = average / 100
+        print(average)
+        # pause
 
 
 class CustomCallback(keras.callbacks.Callback):
@@ -446,11 +463,11 @@ if __name__ == '__main__':
         subject="Ervin",
         nr_of_samples=number_of_samples,
         nr_of_gestures=4,
-        all_labels=["Tip Toe", "Toe Crunches", "Toes UP", "Rest"],
-        batch_size=10,
+        exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP", "Rest"],
+        batch_size=50,
         training_batch_size=16
     )
     # dummy.PrepareTrainingData()
     # dummy.TrainEMG()
     # dummy.DisplayResults()
-    dummy.PredictGestures(200)
+    dummy.PredictGestures()

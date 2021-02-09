@@ -6,7 +6,8 @@ from classify import Exercise
 up = Key.up
 down = Key.down
 left = Key.left
-right = Key.right
+right = Key.rightpip
+
 
 class InputController:
     def __init__(self, input_map=None):
@@ -23,7 +24,7 @@ class InputController:
         key = self.input_map[exercise]
         self.keyboard.press(key)
         self.keyboard.release(key)
-        print( key, " - Key pressed successfully!")
+        print(key, " - Key pressed successfully!")
 
 
 if __name__ == '__main__':
