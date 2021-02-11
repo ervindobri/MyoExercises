@@ -1,7 +1,7 @@
 from pynput.keyboard import Key, Controller
 
 # Predefined input keys
-from classify import Exercise
+from constants.variables import Exercise
 
 up = Key.up
 down = Key.down

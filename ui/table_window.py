@@ -13,6 +13,8 @@ class MainTabWidget(QWidget):
     def __init__(self, parent):
         super().__init__()
         self.layout = QVBoxLayout(self)
+        self.classifyExercises = parent.classifyExercises
+        print(self.classifyExercises.subject)
 
         self.tabs = QTabWidget()
         self.tab1 = QWidget()
