@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QWidget
 
 from ui.tab_one import TrainWidget
+from ui.tab_two import TestWidget
 
 
 class MainTabWidget(QWidget):
@@ -34,6 +35,9 @@ class MainTabWidget(QWidget):
         # Tab1 widgets:
         self.tab1.layout = TrainWidget(self)
         self.tab1.setLayout(self.tab1.layout)
+
+        self.tab2.layout = TestWidget(self)
+        self.tab2.setLayout(self.tab2.layout)
 
     def on_click_select_tab2(self):
         self.tabs.setCurrentIndex(1)

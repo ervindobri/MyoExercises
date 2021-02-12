@@ -26,7 +26,7 @@ class HIMOApp(QMainWindow):
             nr_of_samples=number_of_samples,
             epochs=300,
             # nr_of_gestures=4,
-            # exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP", "Rest"],
+            exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP"],
             # batch_size=50,
             training_batch_size=16
         )

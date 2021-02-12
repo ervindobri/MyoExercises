@@ -23,6 +23,8 @@ from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_
 from helpers.myo_helpers import Listener, MyoService
 
 # matplotlib.use("TkAgg")
+from input import up, right, left, down
+
 matplotlib.use('Qt5Agg')
 RESULT_PATH = os.getcwd() + '\\data\\results\\'
 FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
@@ -36,6 +38,7 @@ class ClassifyExercises:
                  nr_of_samples: int = 1000,
                  nr_of_gestures: int = 4,
                  exercise_labels=None,
+                 key_labels=None,
                  epochs: int = 300,
                  batch_size: int = 50,
                  training_batch_size: int = 32,
@@ -43,8 +46,13 @@ class ClassifyExercises:
         self.epoch_counter = 0
         self.exercise_labels = exercise_labels
         if exercise_labels is None:
-            self.exercise_labels = ["Tip Toe", "Toe Crunches", "Toes UP", "Rest"]
+            self.exercise_labels = ["Tip Toe", "Toe Crunches", "Toes UP"]
 
+        # TODO: make a dict with all the available keys and display in list
+        if key_labels is None:
+            self.key_labels = {"UP": up, "DOWN": down, "LEFT": left, "RIGHT": right}
+
+        self.exercise_labels.append('Rest')
         self.epochs = epochs
         self.training_batch_size = training_batch_size
         self.number_of_gestures = nr_of_gestures
@@ -370,7 +378,7 @@ if __name__ == '__main__':
         subject="Ervin",
         nr_of_samples=number_of_samples,
         nr_of_gestures=4,
-        exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP", "Rest"],
+        exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP"],
         batch_size=50,
         training_batch_size=16
     )

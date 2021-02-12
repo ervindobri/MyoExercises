@@ -134,8 +134,7 @@ class TrainWidget(QHBoxLayout):
         self.classifyExercises.epochs = epochs
 
     def onBatchSizeSelected(self, ind):
-        if self.batchSizeMenu.currentText() is int:
-            self.classifyExercises.training_batch_size = int(self.batchSizeMenu.currentText())
+        self.classifyExercises.training_batch_size = int(self.batchSizeMenu.currentText())
 
     @staticmethod
     def onRecordChecked(value):

@@ -6,7 +6,7 @@ from constants.variables import Exercise
 up = Key.up
 down = Key.down
 left = Key.left
-right = Key.rightpip
+right = Key.right
 
 
 class InputController:
