@@ -40,10 +40,10 @@ class TestWidget(QVBoxLayout):
         setSpinBox.setValue(5)
         setSpinBox.setMaximumWidth(80)
 
-        startButton = QPushButton(self.classifyExercises.exercise_labels[index])
+        startButton = QPushButton(list(self.classifyExercises.exercises.values())[index].name)
         startButton.setMaximumWidth(120)
 
-        assignedKey = QPushButton(list(self.classifyExercises.key_labels.keys())[index])
+        assignedKey = QPushButton(list(self.classifyExercises.exercises.values())[index].assigned_key[0])
         assignedKey.setStyleSheet('background-color: grey; color: white;')
         assignedKey.setMaximumWidth(50)
         assignedKey.setEnabled(False)

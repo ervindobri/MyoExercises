@@ -5,7 +5,7 @@ import time
 import psutil
 import os
 
-from constants.variables import data_array, number_of_samples, PROC_NAME, PROC_PATH
+from constants.variables import data_array, number_of_samples, PROC_NAME, PROC_PATH, streamed_data
 
 myo.init(os.getcwd() + '\\myo64.dll')
 
@@ -28,12 +28,37 @@ class Listener(myo.DeviceListener):
 
     def on_emg(self, event):
         with self.lock:
+            print(event.emg)
             self.emg_data_queue.append(event.emg)
 
             if len(list(self.emg_data_queue)) >= number_of_samples:
                 data_array.append(list(self.emg_data_queue))
                 self.emg_data_queue.clear()
                 return False
+
+
+class ForeverListener(myo.DeviceListener):
+    def __init__(self, n):
+        self.n = n
+        self.lock = Lock()
+        self.emg_data_queue = deque(maxlen=n)
+        self._stop_requested = False
+
+    def on_connected(self, event):
+        print("Myo Connected")
+        event.device.stream_emg(True)
+
+    def get_emg_data(self):
+        with self.lock:
+            print("Locked")  # Ignore this
+
+    def stop(self):
+        with self.lock:
+            self._stop_requested = True
+
+    def on_emg(self, event):
+        with self.lock:
+            streamed_data.append(event.emg)
 
 
 # To check if myo process is running

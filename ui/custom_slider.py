@@ -1,5 +1,5 @@
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QSlider
+from PyQt6.QtWidgets import QSlider, QWidget
 
 
 class Slider(QSlider):
@@ -7,8 +7,8 @@ class Slider(QSlider):
     maximumChanged = QtCore.pyqtSignal(int)
     epochValue = QtCore.pyqtSignal(int)
 
-    def __init__(self, orientation: QtCore.Qt.Orientations):
-        super().__init__(orientation=orientation)
+    def __init__(self, orientation: QtCore.Qt.Orientations, parent: QWidget):
+        super().__init__(orientation=orientation, parent=parent)
         self._min = 0
         self._max = 99
         self.interval = 1

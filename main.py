@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QWidget
 
 from classify import ClassifyExercises
-from constants.variables import number_of_samples
+from constants.variables import number_of_samples, PREDEFINED_EXERCISES
 from ui.table_window import MainTabWidget
 
 
@@ -26,7 +26,7 @@ class HIMOApp(QMainWindow):
             nr_of_samples=number_of_samples,
             epochs=300,
             # nr_of_gestures=4,
-            exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP"],
+            exercises=PREDEFINED_EXERCISES,
             # batch_size=50,
             training_batch_size=16
         )

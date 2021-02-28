@@ -1,4 +1,6 @@
 import datetime
+import threading
+
 import matplotlib
 import numpy as np
 from tensorflow.keras.activations import softmax, relu
@@ -19,11 +21,11 @@ import pickle
 
 from typeguard import typechecked
 
-from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH
-from helpers.myo_helpers import Listener, MyoService
+from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data
+from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
-from input import up, right, left, down
+from input import InputController
 
 matplotlib.use('Qt5Agg')
 RESULT_PATH = os.getcwd() + '\\data\\results\\'
@@ -37,22 +39,24 @@ class ClassifyExercises:
                  subject: str = None,
                  nr_of_samples: int = 1000,
                  nr_of_gestures: int = 4,
-                 exercise_labels=None,
-                 key_labels=None,
+                 exercises=None,
                  epochs: int = 300,
                  batch_size: int = 50,
                  training_batch_size: int = 32,
+                 input_controller: InputController = None,
                  ):
+        if exercises is None:
+            self.exercises = {}
+
+        self.exercises = exercises
+
         self.epoch_counter = 0
-        self.exercise_labels = exercise_labels
-        if exercise_labels is None:
-            self.exercise_labels = ["Tip Toe", "Toe Crunches", "Toes UP"]
+
+        if input_controller is None:
+            self.input_controller = InputController()
 
         # TODO: make a dict with all the available keys and display in list
-        if key_labels is None:
-            self.key_labels = {"UP": up, "DOWN": down, "LEFT": left, "RIGHT": right}
 
-        self.exercise_labels.append('Rest')
         self.epochs = epochs
         self.training_batch_size = training_batch_size
         self.number_of_gestures = nr_of_gestures
@@ -143,8 +147,7 @@ class ClassifyExercises:
         # This division is to make the iterator for making labels run 20 times in inner loop and 3 times in outer loop
         # running total 60 times for 3 foot gestures
         samples = self.prepare_array.shape[0] / self.number_of_gestures
-        print("Preprocess EMG data with ", samples, " samples per", self.number_of_gestures, "exercise, training data "
-                                                                                             "with a nr. of ",
+        print("Preprocess EMG data of ", self.subject, "with ", samples, " samples per", self.number_of_gestures, "exercise, training data with a nr. of ",
               self.training_batch_size, "batch size, for a total of ", self.epochs, "epochs.")
 
         # Now we append all data in training label
@@ -301,8 +304,7 @@ class ClassifyExercises:
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
 
-        model = load_model(self.result_path + self.trained_model_path + self.subject + '_realistic_model.h5')
-        start_time = 0
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
         hub = myo.Hub()
         average = 0.0
         counter = 100
@@ -350,6 +352,58 @@ class ClassifyExercises:
         print(average)
         # pause
 
+    def TestPredict(self):
+        import keyboard
+        hub = myo.Hub()
+        validation_averages = np.zeros((int(self.averages), 8))
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
+        average = 0.0
+
+        listener = ForeverListener(number_of_samples)
+        thread = threading.Thread(target=lambda: hub.run_forever(listener.on_event, 100))
+        thread.start()
+
+        while 1:
+            try:
+                if keyboard.is_pressed("b"):
+                    streamed_data.clear()
+                    start_time = datetime.datetime.now()
+
+                    while len(streamed_data) < number_of_samples:
+                        pass
+
+                    # region PREDICT and REACT
+                    current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
+                    self.validation_set = np.array(current_data)
+                    self.validation_set = np.absolute(self.validation_set)
+
+                    # We add one because iterator below starts from 1
+                    batches = int(self.number_of_samples / self.div) + 1
+                    for i in range(1, batches):
+                        validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
+                                                                axis=0)
+
+                    validation_data = validation_averages
+                    predictions = model.predict(validation_data, batch_size=self.training_batch_size)
+                    predicted_value = np.argmax(predictions[0])
+                    end_time = datetime.datetime.now()
+                    execution_time = (end_time - start_time).total_seconds() * 1000
+                    print(execution_time)
+                    print(self.exercise_labels[predicted_value])
+                    time.sleep(.5)
+                    # endregion
+                if keyboard.is_pressed("s"):
+                    break
+            except Exception as e:
+                if hasattr(e, 'message'):
+                    print(e.message)
+                else:
+                    print(e)
+                pass
+
+        thread.join()
+        hub.stop()
+
 
 class CustomCallback(keras.callbacks.Callback):
 
@@ -385,4 +439,6 @@ if __name__ == '__main__':
     # dummy.PrepareTrainingData()
     # dummy.TrainEMG()
     # dummy.DisplayResults()
-    dummy.PredictGestures()
+    # dummy.PredictGestures()
+
+    dummy.TestPredict()

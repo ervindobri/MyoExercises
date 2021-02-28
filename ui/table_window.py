@@ -33,7 +33,9 @@ class MainTabWidget(QWidget):
 
     def setTabWidgets(self):
         # Tab1 widgets:
-        self.tab1.layout = TrainWidget(self)
+        layout = QHBoxLayout()
+        layout.addWidget(TrainWidget(self))
+        self.tab1.layout = layout
         self.tab1.setLayout(self.tab1.layout)
 
         self.tab2.layout = TestWidget(self)
