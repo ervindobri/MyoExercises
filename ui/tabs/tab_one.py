@@ -1,9 +1,7 @@
-from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QCheckBox, QPushButton, QListWidget, QProgressBar, QFormLayout, \
-    QGroupBox, QLabel, QLineEdit, QSizePolicy, QToolTip, QListWidgetItem, QMessageBox, QSlider, QComboBox, QSplitter, \
-    QSpinBox, QWidget, QWizard, QWizardPage
+from PyQt6.QtWidgets import QMessageBox, QWidget
 from PyQt6 import QtCore
 
-from ui.Ui_TrainPanel import Ui_TrainPanel
+from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
 from ui.dialog import DateDialog
 from ui.thread_helpers.thread_helpers import progressThread, trainThread
 
@@ -58,6 +56,7 @@ class TrainWidget(QWidget):
             date, time, ok = DateDialog.getDateTime()
 
     def updateEpochValue(self, num):
+        print(num)
         epochs = num * 50
         self.ui.epochValue.setNum(epochs)
         self.classifyExercises.epochs = epochs
@@ -88,7 +87,7 @@ class TrainWidget(QWidget):
                 print("Subject is none!")
 
     def updateProgressBar(self, maxVal):
-        self.ui.progress.setValue(maxVal)
+        self.ui.progress.setValue(0) if maxVal %2 ==0 else self.ui.progress.setValue(100)
         if maxVal == 0:
             self.ui.progress.setValue(100)
 

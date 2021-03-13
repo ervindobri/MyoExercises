@@ -37,7 +37,6 @@ class HIMOApp(QMainWindow):
         info = QAction("App Information", self)
         about.triggered[QAction].connect(self.aboutThis)
         about.addAction(info)
-
         self.initUI()
 
     def initUI(self):

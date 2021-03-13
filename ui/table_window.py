@@ -1,13 +1,11 @@
-import sys
-from PyQt6 import QtGui, QtWidgets
 # 1. Import `QApplication` and all the required widgets
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QVBoxLayout, QMainWindow, \
-    QTabWidget
-from PyQt6.QtWidgets import QLabel
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QTabWidget
 from PyQt6.QtWidgets import QWidget
 
-from ui.tab_one import TrainWidget
-from ui.tab_two import TestWidget
+from ui.tabs.tab_one import TrainWidget
+from ui.tabs.tab_three import KeysWidget
+from ui.tabs.tab_two import TestWidget
 
 
 class MainTabWidget(QWidget):
@@ -24,7 +22,8 @@ class MainTabWidget(QWidget):
         self.tabs.resize(300, 200)
         self.tabs.addTab(self.tab1, "Train")
         self.tabs.addTab(self.tab2, "Test")
-        self.tabs.addTab(self.tab3, "Map")
+        self.tabs.addTab(self.tab3, "Keys")
+        self.tabs.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
@@ -40,6 +39,12 @@ class MainTabWidget(QWidget):
 
         self.tab2.layout = TestWidget(self)
         self.tab2.setLayout(self.tab2.layout)
+
+        layout2 = QHBoxLayout()
+        layout2.addWidget(KeysWidget(self))
+
+        self.tab3.layout = layout2
+        self.tab3.setLayout(self.tab3.layout)
 
     def on_click_select_tab2(self):
         self.tabs.setCurrentIndex(1)

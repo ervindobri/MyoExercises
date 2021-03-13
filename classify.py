@@ -43,13 +43,11 @@ class ClassifyExercises:
                  epochs: int = 300,
                  batch_size: int = 50,
                  training_batch_size: int = 32,
-                 input_controller: InputController = None,
-                 ):
+                 input_controller: InputController = None,):
         if exercises is None:
             self.exercises = {}
 
         self.exercises = exercises
-
         self.epoch_counter = 0
 
         if input_controller is None:

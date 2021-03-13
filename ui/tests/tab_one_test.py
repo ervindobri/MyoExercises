@@ -1,6 +1,5 @@
 import sys
 import unittest
-from time import sleep
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
@@ -8,7 +7,7 @@ from PyQt6.QtWidgets import QApplication
 
 from classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
-from ui.tab_one import TrainWidget
+from ui.tabs.tab_one import TrainWidget
 
 app = QApplication(sys.argv)
 
@@ -29,16 +28,13 @@ class TrainWidgetTest(unittest.TestCase):
     def test_defaults(self):
         """Test the GUI in its default state"""
         self.assertEqual(self.widget.ui.subjectEdit.text(), "")
-
         self.assertEqual(self.widget.ui.nrOfExercises.value(), 2)
-
         self.assertEqual(self.widget.ui.checkRecording.isChecked(), False)
-
-        self.assertEqual(self.widget.ui.epochSlider.value(), 8)
-
+        self.assertEqual(self.widget.ui.calibrateButton.text(), "Calibrate new model")
+        self.assertEqual(self.widget.ui.epochSlider.sliderPosition(), 6)
         self.assertEqual(self.widget.ui.subjectButton.text(), "New")
-
         self.assertEqual(self.widget.ui.batchSizeMenu.currentText(), '16')
+        self.assertEqual(self.widget.ui.trainButton.text(), "Train Model")
 
     def test_nr_of_exercises(self):
         self.assertEqual(self.widget.ui.nrOfExercises.maximum(), 6)
@@ -73,11 +69,12 @@ class TrainWidgetTest(unittest.TestCase):
         """ Test max, minimum, steps """
         self.assertEqual(self.widget.ui.epochSlider.minimum(), 2)
         self.assertEqual(self.widget.ui.epochSlider.maximum(), 10)
-        self.assertEqual(self.widget.ui.epochSlider.pageStep(), 10)
+        self.assertEqual(self.widget.ui.epochSlider.tickInterval(), 1)
 
     def test_subject_list(self):
         """ Test subject list always having at least an item"""
-        self.assertNotEqual(self.widget.ui.listFiles.count(), 0)
+        self.assertEqual(all(self.widget.ui.listFiles.item(c).text().isalpha()
+                             for c in range(0, self.widget.ui.listFiles.count())), True)
 
     def test_calibrate_process(self):
         """ Testing the process of opening the calibration wizard """

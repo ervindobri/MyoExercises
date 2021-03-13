@@ -10,11 +10,12 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBo
     QWizard, QWizardPage, QStyle
 
 from ui.custom_slider import Slider
+from ui.custom_widgets.custom_progressbar import ProgressBar
 from ui.custom_widgets.two_list_selection import TwoListSelection
 from ui.dialog import DateDialog
 
-# FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
-FULL_MODEL_PATH = 'X:/Sapientia-EMTE/DiplomaWork/Service/data/results/training_data'
+FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
+# FULL_MODEL_PATH = '/data/results/training_data'
 
 
 class Ui_TrainPanel(object):
@@ -109,11 +110,11 @@ class Ui_TrainPanel(object):
         self.epochValue.setAlignment(QtCore.Qt.Alignment.AlignHCenter)
 
         self.epochSlider.setMinimum(2)
-        self.epochSlider.setMaximum(12)
-        self.epochSlider.setInterval(1)
-        self.epochSlider.setValue(8)  # no idea why, but 8 is the middle somehow
-
+        self.epochSlider.setMaximum(10)
         self.epochSlider.setTickInterval(1)
+        # self.epochSlider.setInterval(1)
+        # self.epochSlider.setValue(8)  # no idea why, but 8 is the middle somehow
+        self.epochSlider.setSliderPosition(6)
         self.epochSlider.setTickPosition(QSlider.TickPosition.TicksBelow)
 
         self.label_minimum.setNum(self.epochSlider.minimum().real * 50)
@@ -209,8 +210,6 @@ class Ui_TrainPanel(object):
         for x, ind in zip(files, range(0, len(files))):
             item = QListWidgetItem(x.split('.')[0])
             item.setTextAlignment(Qt.Alignment.AlignHCenter)
-            self.listFiles.addItem(item)
-            item = QListWidgetItem('bleh')
             self.listFiles.addItem(item)
 
         self.subjectLayout.addLayout(self.form_layout)
