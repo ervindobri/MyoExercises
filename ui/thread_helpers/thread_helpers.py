@@ -9,7 +9,7 @@ from classify import ClassifyExercises
 class trainThread(QThread):
     taskFinished = QtCore.pyqtSignal()
 
-    def __init__(self, classify: ClassifyExercises):
+    def __init__(self, classify: ClassifyExercises = None):
         QThread.__init__(self)
         self.classify = classify
 
@@ -25,7 +25,7 @@ class trainThread(QThread):
 class progressThread(QThread):
     progress_update = QtCore.pyqtSignal(int)  # or pyqtSignal(int)
 
-    def __init__(self, classify: ClassifyExercises):
+    def __init__(self, classify: ClassifyExercises = None):
         QThread.__init__(self)
         self.classify = classify
 

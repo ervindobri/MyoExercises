@@ -7,7 +7,7 @@ import os
 
 from constants.variables import data_array, number_of_samples, PROC_NAME, PROC_PATH, streamed_data
 
-myo.init(os.getcwd() + '\\myo64.dll')
+myo.init('X:\\Sapientia-EMTE\\DiplomaWork\\Service\\myo64.dll')
 
 
 # This class from Myo-python SDK listens to EMG signals from armband

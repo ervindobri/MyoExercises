@@ -13,7 +13,8 @@ from ui.custom_slider import Slider
 from ui.custom_widgets.two_list_selection import TwoListSelection
 from ui.dialog import DateDialog
 
-FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
+# FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
+FULL_MODEL_PATH = 'X:/Sapientia-EMTE/DiplomaWork/Service/data/results/training_data'
 
 
 class Ui_TrainPanel(object):
@@ -208,6 +209,8 @@ class Ui_TrainPanel(object):
         for x, ind in zip(files, range(0, len(files))):
             item = QListWidgetItem(x.split('.')[0])
             item.setTextAlignment(Qt.Alignment.AlignHCenter)
+            self.listFiles.addItem(item)
+            item = QListWidgetItem('bleh')
             self.listFiles.addItem(item)
 
         self.subjectLayout.addLayout(self.form_layout)
