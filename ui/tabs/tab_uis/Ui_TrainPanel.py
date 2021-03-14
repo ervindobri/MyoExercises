@@ -2,17 +2,13 @@ import os
 from os import listdir
 from os.path import join, isfile
 
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBox, QFormLayout, QLineEdit, QPushButton, \
-    QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QApplication, \
-    QWizard, QWizardPage, QStyle
+    QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QWizard, QWizardPage
 
 from ui.custom_slider import Slider
-from ui.custom_widgets.custom_progressbar import ProgressBar
 from ui.custom_widgets.two_list_selection import TwoListSelection
-from ui.dialog import DateDialog
 
 FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
 # FULL_MODEL_PATH = '/data/results/training_data'

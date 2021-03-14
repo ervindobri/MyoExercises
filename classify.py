@@ -21,7 +21,8 @@ import pickle
 
 from typeguard import typechecked
 
-from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data
+from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data, \
+    PREDEFINED_EXERCISES
 from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
@@ -298,7 +299,7 @@ class ClassifyExercises:
         plot.savefig(FIGURES_PATH + save_file, bbox_inches='tight')
         print(save_file + " :figure saved successfully!")
 
-    def PredictGestures(self, number_of_samples: int = number_of_samples):
+    def PredictGestures(self, nr_samples: int = number_of_samples):
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
 
@@ -313,7 +314,7 @@ class ClassifyExercises:
 
                 # print("Show a foot gesture and press ENTER to get its classification!")
 
-                listener = Listener(number_of_samples)
+                listener = Listener(nr_samples)
                 hub.run(listener.on_event, 20000)  # 1000 * 20 = 20000 for enough samples
                 # Here we send the received number of samples making them a list of 1000 rows 8 columns
                 self.validation_set = np.array((data_array[0]))
@@ -342,8 +343,7 @@ class ClassifyExercises:
             end_time = datetime.datetime.now()
             execution_time = (end_time - start_time).total_seconds() * 1000
             average += execution_time
-            print(execution_time)
-            print(self.exercise_labels[predicted_value])
+            print(self.exercises.values()[predicted_value])
             time.sleep(.5)
             counter -= 1
         average = average / 100
@@ -363,33 +363,33 @@ class ClassifyExercises:
 
         while 1:
             try:
-                if keyboard.is_pressed("b"):
-                    streamed_data.clear()
-                    start_time = datetime.datetime.now()
+                # if keyboard.is_pressed("b"):
+                # streamed_data.clear()
+                start_time = datetime.datetime.now()
 
-                    while len(streamed_data) < number_of_samples:
-                        pass
+                while len(streamed_data) < number_of_samples:
+                    pass
 
-                    # region PREDICT and REACT
-                    current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
-                    self.validation_set = np.array(current_data)
-                    self.validation_set = np.absolute(self.validation_set)
+                # region PREDICT and REACT
+                current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
+                self.validation_set = np.array(current_data)
+                self.validation_set = np.absolute(self.validation_set)
 
-                    # We add one because iterator below starts from 1
-                    batches = int(self.number_of_samples / self.div) + 1
-                    for i in range(1, batches):
-                        validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
-                                                                axis=0)
+                # We add one because iterator below starts from 1
+                batches = int(self.number_of_samples / self.div) + 1
+                for i in range(1, batches):
+                    validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
+                                                            axis=0)
 
-                    validation_data = validation_averages
-                    predictions = model.predict(validation_data, batch_size=self.training_batch_size)
-                    predicted_value = np.argmax(predictions[0])
-                    end_time = datetime.datetime.now()
-                    execution_time = (end_time - start_time).total_seconds() * 1000
-                    print(execution_time)
-                    print(self.exercise_labels[predicted_value])
-                    time.sleep(.5)
-                    # endregion
+                validation_data = validation_averages
+                predictions = model.predict(validation_data, batch_size=self.training_batch_size)
+                predicted_value = np.argmax(predictions[0])
+                # end_time = datetime.datetime.now()
+                # execution_time = (end_time - start_time).total_seconds() * 1000
+                key = list(self.exercises.values())[predicted_value].assigned_key[1]
+                self.input_controller.simulateKey(key)
+                time.sleep(.5)
+                # endregion
                 if keyboard.is_pressed("s"):
                     break
             except Exception as e:
@@ -430,7 +430,7 @@ if __name__ == '__main__':
         subject="Ervin",
         nr_of_samples=number_of_samples,
         nr_of_gestures=4,
-        exercise_labels=["Tip Toe", "Toe Crunches", "Toes UP"],
+        exercises=PREDEFINED_EXERCISES,
         batch_size=50,
         training_batch_size=16
     )

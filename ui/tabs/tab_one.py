@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QMessageBox, QWidget
 from PyQt6 import QtCore
 
 from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
-from ui.dialog import DateDialog
+from ui.custom_widgets.dialog import DateDialog
 from ui.thread_helpers.thread_helpers import progressThread, trainThread
 
 

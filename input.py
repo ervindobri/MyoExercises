@@ -1,3 +1,6 @@
+import threading
+import time
+
 from pynput.keyboard import Key, Controller
 
 # Predefined input keys
@@ -13,14 +16,12 @@ class InputController:
         self.input_map = input_map
         self.keyboard = Controller()
 
-    def simulateKey(self, exercise: Exercise):
-        if exercise not in self.input_map.keys():
-            print("Exercise not in input map!")
-
-        key = self.input_map[exercise]
+    def simulateKey(self, key):
         self.keyboard.press(key)
+        time.sleep(.3)
         self.keyboard.release(key)
         print(key, " - Key pressed successfully!")
+
 
     def startTest(self):
         self.keyboard.press(Key.space)

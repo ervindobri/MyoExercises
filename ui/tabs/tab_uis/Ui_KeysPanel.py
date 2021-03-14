@@ -1,24 +1,12 @@
-import os
 from functools import partial
-from os import listdir
-from os.path import join, isfile
 
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtCore import Qt, QTimer, QObject
-from PyQt6.QtGui import QPixmap, QIcon, QCursor
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBox, QFormLayout, QLineEdit, QPushButton, \
-    QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QApplication, \
-    QWizard, QWizardPage, QStyle, QGridLayout, QLayoutItem, QWidget
-from pynput.keyboard import Controller
-from pynput.keyboard import Key, Listener
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QLabel, QHBoxLayout, QPushButton, \
+    QGridLayout
+from pynput.keyboard import Key
 
-from constants.variables import Exercise
-from input import InputController
-from ui.custom_slider import Slider
-from ui.custom_widgets.custom_progressbar import ProgressBar
+from ui.custom_widgets.change_key_dialog import ChangeKeyDialog
 from ui.custom_widgets.key_monitor import KeyMonitor
-from ui.custom_widgets.two_list_selection import TwoListSelection
-from ui.dialog import DateDialog
 
 # FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
 FULL_MODEL_PATH = '/data/results/training_data'
@@ -56,7 +44,7 @@ class Ui_KeysPanel(object):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.onTimeout)
-        self.timer.start()
+        self.timer.start( )
 
     def onTimeout(self):
         if self.monitor.released:
@@ -104,4 +92,18 @@ class Ui_KeysPanel(object):
 
     def openDialog(self, button):
         print(button)
+        index = self.buttons.index(button)
+        button.setStyleSheet(
+            """ QPushButton
+            {
+                border: 1px solid #B8B8B8;
+                background-color: grey;
+            }
+            """)
+        dialog = ChangeKeyDialog(
+            buttons=self.buttons,
+            exercises=self.exercises,
+            index=index
+        )
+        dialog.exec()
         # if button is QPushButton:
