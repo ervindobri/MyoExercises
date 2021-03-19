@@ -26,10 +26,11 @@ class TestWidget(QVBoxLayout):
 
         self.mainLayout.addLayout(self.labels)
         self.mainLayout.setAlignment(self.labels, QtCore.Qt.Alignment.AlignTop)
-        for e in range(0, self.classifyExercises.number_of_gestures):
-            alignment = self.exerciseLayout(e)
-            self.mainLayout.addLayout(alignment)
-            self.mainLayout.setAlignment(alignment, QtCore.Qt.Alignment.AlignTop)
+        if self.classifyExercises is not None:
+            for e in range(0, self.classifyExercises.number_of_gestures):
+                alignment = self.exerciseLayout(e)
+                self.mainLayout.addLayout(alignment)
+                self.mainLayout.setAlignment(alignment, QtCore.Qt.Alignment.AlignTop)
         self.addLayout(self.mainLayout)
         self.setAlignment(self.mainLayout, QtCore.Qt.Alignment.AlignTop)
 

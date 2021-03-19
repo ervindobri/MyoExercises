@@ -68,7 +68,8 @@ class MyoService:
         self.hub = myo.Hub()
 
     # Check if Myo Connect.exe process is running
-    def check_if_process_running(self):
+    @staticmethod
+    def check_if_process_running():
         try:
             for proc in psutil.process_iter():
                 if proc.name() == PROC_NAME:
@@ -79,6 +80,11 @@ class MyoService:
             print(PROC_NAME, " not running")
 
     # Restart myo connect.exe process if its not running
+    @staticmethod
+    def start_process():
+        os.startfile(PROC_PATH)
+        time.sleep(1)
+
     def restart_process(self):
         for proc in psutil.process_iter():
             # check whether the process name matches

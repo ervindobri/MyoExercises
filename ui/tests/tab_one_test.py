@@ -83,7 +83,6 @@ class TrainWidgetTest(unittest.TestCase):
         self.assertEqual(firstListItem.isSelected(), True)
         calibrateButton = self.widget.ui.calibrateButton
         QTest.mouseClick(calibrateButton, Qt.MouseButtons.LeftButton)
-
         self.assertEqual(self.widget.ui.wizard.isVisible(), True)
 
 

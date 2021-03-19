@@ -29,8 +29,8 @@ class progressThread(QThread):
         QThread.__init__(self)
         self.classify = classify
 
-    def __del__(self):
-        self.wait()
+    # def __del__(self):
+    #     self.wait()
 
     def run(self):
         # TODO:  can't get progress as global variable

@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 from numpy.core.multiarray import zeros
@@ -20,9 +21,12 @@ Sensor8 = zeros((1, number_of_samples))
 PROC_NAME = "Myo Connect.exe"
 PROC_PATH = 'C:\\Program Files (x86)\\Thalmic Labs\\Myo Connect\\' + PROC_NAME
 
+RESULT_PATH = os.getcwd() + '\\data\\results\\'
+FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
+
 DATA_PATH = 'training_data\\'
 MODEL_PATH = 'trained_model\\'
-
+MAPPED_KEYS_PATH = 'data\\results\\mapped_keys'
 KEYS = {
     "UP": Key.up,
     "DOWN": Key.down,

@@ -1,3 +1,6 @@
+import json
+import os
+
 from PyQt6.QtCore import QDateTime, Qt, QTimer
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QDateTimeEdit, QDialogButtonBox, QLabel, QWidget
 
@@ -50,6 +53,10 @@ class ChangeKeyDialog(QDialog):
                         print("old key:", old_exercise.assigned_key)
                         print("new key:", self.exercises[self.index].assigned_key)
                         self.close()
+
+    def writeExerciseKeyMap(self):
+        with open(os.getcwd() + MAPPED_KEYS_PATH + self.subject + '.json', 'w') as fp:
+            json.dump(self.exercises, fp)
 
     # static method to create the dialog and return (date, time, accepted)
     @staticmethod

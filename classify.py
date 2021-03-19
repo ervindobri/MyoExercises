@@ -2,15 +2,15 @@ import datetime
 import threading
 
 import matplotlib
+import myo
 import numpy as np
 from tensorflow.keras.activations import softmax, relu
 from tensorflow import keras
 from keras import regularizers
 from keras.models import load_model
-import myo
 import time
-import os
 import matplotlib.pyplot as plt
+from tensorflow.python.keras.saving.save import save_model
 
 from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
 
@@ -22,15 +22,13 @@ import pickle
 from typeguard import typechecked
 
 from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data, \
-    PREDEFINED_EXERCISES
+    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH
 from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
 from input import InputController
 
 matplotlib.use('Qt5Agg')
-RESULT_PATH = os.getcwd() + '\\data\\results\\'
-FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
 epoch_counter = 0
 
 
@@ -203,11 +201,13 @@ class ClassifyExercises:
         )
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
-                            batch_size=self.training_batch_size, verbose=0, callbacks=[CustomCallback()])
+                            batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback, CustomCallback()])
 
-        print("Saving model for later...")
         save_path = RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5'
-        model.save(save_path)
+        print(save_path)
+        save_model(model, save_path)
+        # model.save(save_path)
+        print("Saving model for later...")
 
         filepath = RESULT_PATH + MODEL_PATH + self.subject + '.history'
         # os.makedirs(os.path.dirname(filepath), exist_ok=True)

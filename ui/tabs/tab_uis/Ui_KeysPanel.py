@@ -33,10 +33,11 @@ class Ui_KeysPanel(object):
         self.buttons = []
         self.exercises = []
 
-        for x, ind in zip(KeysWidget.classifyExercises.exercises,
-                          range(0, len(KeysWidget.classifyExercises.exercises))):
-            self.exercises.append(KeysWidget.classifyExercises.exercises[x])
-            self.createRow(exercise=KeysWidget.classifyExercises.exercises[x], index=ind)
+        if KeysWidget.classifyExercises is not None:
+            for x, ind in zip(KeysWidget.classifyExercises.exercises,
+                              range(0, len(KeysWidget.classifyExercises.exercises))):
+                self.exercises.append(KeysWidget.classifyExercises.exercises[x])
+                self.createRow(exercise=KeysWidget.classifyExercises.exercises[x], index=ind)
 
         self.monitor = KeyMonitor()
         # self.monitor.keyPressed.connect(self.onKeyPress)
@@ -44,7 +45,7 @@ class Ui_KeysPanel(object):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.onTimeout)
-        self.timer.start( )
+        self.timer.start()
 
     def onTimeout(self):
         if self.monitor.released:

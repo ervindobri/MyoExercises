@@ -1,0 +1,10 @@
+pyqt6~=6.0.3
+pynput~=1.7.3
+scipy~=1.4.1
+psutil~=5.7.3
+numpy~=1.19.5
+matplotlib~=3.3.4
+tensorflow~=2.2.0
+keras~=2.4.3
+myo-python~=1.0.4
+typeguard~=2.10.0

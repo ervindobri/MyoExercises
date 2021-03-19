@@ -18,6 +18,7 @@ class TrainWidget(QWidget):
         self.trainThread = trainThread()
         if parent is not None:
             self.classifyExercises = parent.classifyExercises
+            self.infoLabel = parent.infoLabel
             self.progress_thread = progressThread(self.classifyExercises)
             self.trainThread = trainThread(self.classifyExercises)
 
@@ -70,12 +71,15 @@ class TrainWidget(QWidget):
 
     def onTrainClicked(self):
         print("clicked")
+        self.infoLabel.setText("Starting training...")
         if self.ui.resultButton.isEnabled:
             self.ui.resultButton.setEnabled(False)
 
         print("disabled button")
         if self.classifyExercises is not None:
             if self.classifyExercises.subject is not None:
+                self.infoLabel.setText("Training in progress.")
+
                 self.trainThread.start()
                 self.progress_thread.start()
                 self.progress_thread.progress_update.connect(self.updateProgressBar)
@@ -87,7 +91,7 @@ class TrainWidget(QWidget):
                 print("Subject is none!")
 
     def updateProgressBar(self, maxVal):
-        self.ui.progress.setValue(0) if maxVal %2 ==0 else self.ui.progress.setValue(100)
+        self.ui.progress.setValue(0) if maxVal % 2 == 0 else self.ui.progress.setValue(100)
         if maxVal == 0:
             self.ui.progress.setValue(100)
 
