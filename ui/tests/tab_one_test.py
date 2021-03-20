@@ -5,9 +5,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 
-from classify import ClassifyExercises
+from services.classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
-from ui.tabs.tab_one import TrainWidget
+from ui.tabs.tab_train import TrainWidget
 
 app = QApplication(sys.argv)
 
@@ -61,7 +61,7 @@ class TrainWidgetTest(unittest.TestCase):
         self.assertEqual(any(c.isalpha() for c in self.widget.subject), True)
 
     def test_batch_size_menu(self):
-        """ Test dropdown menu items """
+        """ Test dropdown menu_bar items """
         allItems = [self.widget.ui.batchSizeMenu.itemText(i) for i in range(self.widget.ui.batchSizeMenu.count())]
         self.assertEqual(allItems, ['2', '4', '8', '16', '32', '64', '128'])
 

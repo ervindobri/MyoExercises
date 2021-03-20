@@ -1,18 +1,20 @@
 import sys
 
-from PyQt5.QtWidgets import qApp
-from PyQt6 import QtGui, QtWidgets
 # 1. Import `QApplication` and all the required widgets
+import time
+
 from PyQt6.QtCore import QSize
-from PyQt6.QtGui import QAction, QPixmap, QIcon
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QVBoxLayout, QMainWindow, \
-    QStatusBar, QStyle
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QApplication, QHBoxLayout, QPushButton, QMainWindow, \
+    QStatusBar, QStyle, QDialog
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QWidget
 
-from classify import ClassifyExercises
+from services.classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
 from helpers.myo_helpers import MyoService
+from ui.menu_bar.about import aboutThis
+from ui.menu_bar.config_dialog import ConfigDialog
 from ui.table_window import MainTabWidget
 
 
@@ -33,6 +35,8 @@ class HIMOApp(QMainWindow):
         self.title = 'Myo Exercises'
 
         if MyoService.check_if_process_running():
+            print("Myo Connect is running!")
+            time.sleep(3)
             self.classifyExercises = ClassifyExercises(
                 # subject="Ervin",
                 nr_of_samples=number_of_samples,
@@ -61,8 +65,12 @@ class HIMOApp(QMainWindow):
         about.triggered[QAction].connect(self.aboutThis)
         about.addAction(info)
 
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        configAction = QAction("System configuration", self)
+        config.triggered[QAction].connect(self.configWindow)
+        config.addAction(configAction)
 
+
+        self.setGeometry(self.left, self.top, self.width, self.height)
         self.setCentralWidget(self.table_widget)
 
         widget = QWidget()
@@ -91,6 +99,13 @@ class HIMOApp(QMainWindow):
     def aboutThis(self, q):
         # TODO: open dialog with app informations
         print(q.text() + " is triggered")
+
+    def configWindow(self):
+        print("config..")
+        widget = ConfigDialog(self)
+        res = widget.exec()
+
+
 
 
 if __name__ == '__main__':

@@ -2,7 +2,9 @@ import os
 from enum import Enum
 
 from numpy.core.multiarray import zeros
-from pynput.keyboard import Key
+from pynput.keyboard import Key, KeyCode
+
+from models.exercise import Exercise
 
 global data_array, streamed_data
 data_array = []
@@ -26,7 +28,7 @@ FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
 
 DATA_PATH = 'training_data\\'
 MODEL_PATH = 'trained_model\\'
-MAPPED_KEYS_PATH = 'data\\results\\mapped_keys'
+MAPPED_KEYS_PATH = os.getcwd() + '\\data\\results\\mapped_keys\\'
 KEYS = {
     "UP": Key.up,
     "DOWN": Key.down,
@@ -34,17 +36,20 @@ KEYS = {
     "RIGHT": Key.right,
 }
 
+SUPPORTED_KEYS = {
+    "UP": Key.up,
+    "DOWN": Key.down,
+    "LEFT": Key.left,
+    "RIGHT": Key.right,
+    "SPACE": Key.space,
+    "W": KeyCode.from_char('w'),
+    "A": KeyCode.from_char('a'),
+    "S": KeyCode.from_char('s'),
+    "D": KeyCode.from_char('d'),
+}
 
-class Exercise:
-    def __init__(self,
-                 name: str = "Exercise",
-                 code: str = "EX",  # abbreviation of exercise name
-                 instruction: str = "Do this, do that!",
-                 assigned_key: Key = Key.space):
-        self.name = name
-        self.code = code
-        self.instruction = instruction
-        self.assigned_key = assigned_key
+
+
 
 
 # class Exercise(Enum):

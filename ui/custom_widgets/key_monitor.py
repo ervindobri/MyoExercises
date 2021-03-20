@@ -14,17 +14,20 @@ class KeyMonitor(QtCore.QObject):
         self.listener = Listener(on_press=self.on_press, on_release=self.on_release)
         self.currentKey = None
         self.released = False
+        print("Monitor init!")
 
     def on_press(self, key):
+        self.released = False
         self.currentKey = key
         self.keyPressed.emit(key)
-        self.released = False
 
     def on_release(self, key):
+        self.currentKey = None
         self.released = True
 
     def stop_monitoring(self):
         self.listener.stop()
+        self.deleteLater()
 
     def start_monitoring(self):
         self.listener.start()

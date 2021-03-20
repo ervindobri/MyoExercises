@@ -64,18 +64,17 @@ class TrainWidget(QWidget):
 
     def onBatchSizeSelected(self, ind):
         self.classifyExercises.training_batch_size = int(self.ui.batchSizeMenu.currentText())
+        self.infoLabel.setText("Batch size set to " + self.ui.batchSizeMenu.currentText() + ".")
 
     def onResultClicked(self):
         print("open image")
         self.classifyExercises.DisplayResults()
 
     def onTrainClicked(self):
-        print("clicked")
-        self.infoLabel.setText("Starting training...")
+        self.infoLabel.setText("Training in progress.")
         if self.ui.resultButton.isEnabled:
             self.ui.resultButton.setEnabled(False)
 
-        print("disabled button")
         if self.classifyExercises is not None:
             if self.classifyExercises.subject is not None:
                 self.infoLabel.setText("Training in progress.")
@@ -104,6 +103,7 @@ class TrainWidget(QWidget):
                            "Training model finished!",
                            QMessageBox.StandardButtons.Ok)
         self.ui.resultButton.setEnabled(True)
+        self.infoLabel.setText("Training model successful.")
 
     @QtCore.pyqtSlot(int)
     def on_pathChanged(self, num):

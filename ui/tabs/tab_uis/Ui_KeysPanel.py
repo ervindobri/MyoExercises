@@ -1,32 +1,19 @@
 from functools import partial
 
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6 import QtCore
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QLabel, QHBoxLayout, QPushButton, \
     QGridLayout
-from pynput.keyboard import Key
-
 from ui.custom_widgets.change_key_dialog import ChangeKeyDialog
-from ui.custom_widgets.key_monitor import KeyMonitor
 
 # FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
+from ui.custom_widgets.supported_keys_dialog import AllKeysDialog
+
 FULL_MODEL_PATH = '/data/results/training_data'
 
 
-def on_press(key):
-    print('{0} pressed'.format(
-        key))
-
-
-def on_release(key):
-    print('{0} release'.format(
-        key))
-    if key == Key.esc:
-        # Stop listener
-        return False
-
-
 class Ui_KeysPanel(object):
-
 
     def setupUi(self, KeysWidget):
         self.mainLayout = QGridLayout(KeysWidget)
@@ -38,35 +25,16 @@ class Ui_KeysPanel(object):
                               range(0, len(KeysWidget.classifyExercises.exercises))):
                 self.exercises.append(KeysWidget.classifyExercises.exercises[x])
                 self.createRow(exercise=KeysWidget.classifyExercises.exercises[x], index=ind)
+        self.actions = QHBoxLayout()
+        self.supportedKeys = QPushButton('Supported keys')
+        self.supportedKeys.setIcon(QIcon.fromTheme("dialog-information"))
+        self.supportedKeys.clicked.connect(self.allKeyDialog)
 
-        self.monitor = KeyMonitor()
-        # self.monitor.keyPressed.connect(self.onKeyPress)
-        self.monitor.start_monitoring()
+        self.saveProfile = QPushButton('Save keys')
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.onTimeout)
-        self.timer.start()
-
-    def onTimeout(self):
-        if self.monitor.released:
-            for b in self.buttons:
-                b.setStyleSheet(
-                    """ QPushButton
-                    {
-                        border: 1px solid grey;
-                        background-color: white;
-                    }
-                    """)
-        else:
-            for ind in range(0, len(self.exercises)):
-                if self.monitor.currentKey == self.exercises[ind].assigned_key[1]:
-                    self.buttons[ind].setStyleSheet(
-                    """ QPushButton
-                    {
-                        border: 1px solid green;
-                        background-color: #7FFFD4;
-                    }
-                    """)
+        self.actions.addWidget(self.supportedKeys)
+        self.actions.addWidget(self.saveProfile)
+        self.mainLayout.addLayout(self.actions,self.mainLayout.rowCount(), 0)
 
     def createRow(self, exercise, index):
         item = QHBoxLayout()
@@ -88,9 +56,6 @@ class Ui_KeysPanel(object):
         self.mainLayout.addLayout(item, index, 0)
         print(index, exercise.name, exercise.assigned_key)
 
-    # def eventFilter(self, source, event):
-    #     print(event)
-
     def openDialog(self, button):
         print(button)
         index = self.buttons.index(button)
@@ -106,5 +71,10 @@ class Ui_KeysPanel(object):
             exercises=self.exercises,
             index=index
         )
+        dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.exec()
         # if button is QPushButton:
+
+    def allKeyDialog(self):
+        dialog = AllKeysDialog()
+        dialog.exec()

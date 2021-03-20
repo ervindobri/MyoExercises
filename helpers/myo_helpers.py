@@ -7,7 +7,7 @@ import os
 
 from constants.variables import data_array, number_of_samples, PROC_NAME, PROC_PATH, streamed_data
 
-myo.init('X:\\Sapientia-EMTE\\DiplomaWork\\Service\\myo64.dll')
+myo.init(os.getcwd() + '\\services\\myo64.dll')
 
 
 # This class from Myo-python SDK listens to EMG signals from armband
@@ -83,7 +83,6 @@ class MyoService:
     @staticmethod
     def start_process():
         os.startfile(PROC_PATH)
-        time.sleep(1)
 
     def restart_process(self):
         for proc in psutil.process_iter():

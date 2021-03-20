@@ -3,7 +3,7 @@ import time
 from PyQt6 import QtCore
 from PyQt6.QtCore import QThread
 
-from classify import ClassifyExercises
+from services.classify import ClassifyExercises
 
 
 class trainThread(QThread):

@@ -26,7 +26,7 @@ from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_
 from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
-from input import InputController
+from services.input import InputController
 
 matplotlib.use('Qt5Agg')
 epoch_counter = 0

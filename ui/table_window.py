@@ -3,9 +3,9 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout, QTabWidget
 from PyQt6.QtWidgets import QWidget
 
-from ui.tabs.tab_one import TrainWidget
-from ui.tabs.tab_three import KeysWidget
-from ui.tabs.tab_two import TestWidget
+from ui.tabs.tab_train import TrainWidget
+from ui.tabs.tab_keys import KeysWidget
+from ui.tabs.tab_test import TestWidget
 
 
 class MainTabWidget(QWidget):

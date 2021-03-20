@@ -1,10 +1,10 @@
 import json
 import os
+from PyQt6.QtCore import QTimer, QSize, Qt
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QPushButton, QHBoxLayout
+from pynput.keyboard import KeyCode
 
-from PyQt6.QtCore import QDateTime, Qt, QTimer
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QDateTimeEdit, QDialogButtonBox, QLabel, QWidget
-
-from constants.variables import KEYS
+from constants.variables import KEYS, SUPPORTED_KEYS, MAPPED_KEYS_PATH
 from ui.custom_widgets.key_monitor import KeyMonitor
 
 
@@ -15,27 +15,62 @@ class ChangeKeyDialog(QDialog):
                  index: int = None,
                  ):
         super(ChangeKeyDialog, self).__init__(parent)
-        widget = QWidget(self)
         layout = QVBoxLayout(self)
-        label = QLabel("Press a key to swap this exercise's key")
+        widget = QWidget()
+        keyLayout = QVBoxLayout()
+        widget.setStyleSheet("""
+        QWidget{
+            border-radius: 12px;
+            border: 1px solid grey;
+            background-color: #b5b5b5;
+            color: white;
+            font-size: 40px;
+        }
+        """)
+        # widget.setFixedSize(100, 100)
+        self.currentKeyLabel = QLabel('W')
+        keyLayout.addWidget(self.currentKeyLabel)
+        keyLayout.setAlignment(self.currentKeyLabel, Qt.Alignment.AlignCenter)
+        widget.setLayout(keyLayout)
+
+        label = QLabel("Press a key to swap")
+        emptyKey = QPushButton('Use empty slot')
+        emptyKey.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        emptyKey.clicked.connect(self.useEmpty)
+
+        acceptKey = QPushButton('Accept')
+        acceptKey.clicked.connect(self.accept)
+        acceptKey.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+
         layout.addWidget(label)
+        layout.addWidget(widget)
+        actions = QHBoxLayout()
+        actions.addWidget(emptyKey)
+        actions.addWidget(acceptKey)
+        layout.addLayout(actions)
+        layout.setAlignment(widget, Qt.Alignment.AlignCenter)
         self.buttons = buttons
         self.exercises = exercises
         self.index = index
-        widget.setLayout(layout)
-        self.window().setMinimumSize(210, 150)
+        self.setLayout(layout)
 
         self.monitor = KeyMonitor()
         self.monitor.start_monitoring()
+        self.currentKey = self.monitor.currentKey
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.onTimeout)
         self.timer.start()
+        print("Dialog init done!")
 
-    def onTimeout(self):
-        if self.monitor.currentKey in list(KEYS.values()):
-            for name, key in KEYS.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
-                if key == self.monitor.currentKey:
+    def accept(self):
+        currentKeyScheme = [e.assigned_key for e in self.exercises]
+        print(self.exercises[self.index].assigned_key)
+
+        # Check if pressed key is among
+        if self.currentKey in currentKeyScheme:
+            for name, key in SUPPORTED_KEYS.items():  # for name, age in dictionary.iteritems():  (for Python 2.x)
+                if key == self.currentKey:
                     old_exercise = None
                     old_button = None
                     for exercise, button in zip(self.exercises, self.buttons):
@@ -45,14 +80,42 @@ class ChangeKeyDialog(QDialog):
 
                     # Set new keys and labels
                     if old_exercise is not None and old_button is not None:
-                        self.exercises[self.index].assigned_key, old_exercise.assigned_key = old_exercise.assigned_key, self.exercises[
-                            self.index].assigned_key
+                        self.exercises[
+                            self.index].assigned_key, old_exercise.assigned_key = old_exercise.assigned_key, \
+                                                                                  self.exercises[
+                                                                                      self.index].assigned_key
                         old_label = old_button.text()
                         old_button.setText(self.buttons[self.index].text())
                         self.buttons[self.index].setText(old_label)
                         print("old key:", old_exercise.assigned_key)
                         print("new key:", self.exercises[self.index].assigned_key)
+                        self.timer.stop()
                         self.close()
+        else:
+            self.exercises[self.index].assigned_key = self.currentKey
+            print("pos:", list(SUPPORTED_KEYS.keys())[list(SUPPORTED_KEYS.values()).index(self.currentKey[1])])
+            self.buttons[self.index].setText(list(SUPPORTED_KEYS.keys())[list(SUPPORTED_KEYS.values())
+                                             .index(self.currentKey[1])])
+            self.timer.stop()
+            self.close()
+
+    def useEmpty(self):
+        self.currentKey = ("Empty", None)
+        self.exercises[self.index].assigned_key = self.currentKey
+        self.buttons[self.index].setText(self.currentKey[0])
+        self.timer.stop()
+        self.close()
+
+    def onTimeout(self):
+        if self.monitor is not None:
+            if self.monitor.currentKey in list(SUPPORTED_KEYS.values()):
+                if type(self.monitor.currentKey) is KeyCode:
+                    self.currentKeyLabel.setText(self.monitor.currentKey.char)
+                else:
+                    self.currentKeyLabel.setText(str(self.monitor.currentKey))
+                name = list(SUPPORTED_KEYS.keys())[list(SUPPORTED_KEYS.values()).index(self.monitor.currentKey)]
+                self.currentKey = (name, self.monitor.currentKey)
+
 
     def writeExerciseKeyMap(self):
         with open(os.getcwd() + MAPPED_KEYS_PATH + self.subject + '.json', 'w') as fp:
