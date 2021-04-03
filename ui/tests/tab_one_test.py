@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 
-from services.classify import ClassifyExercises
+from classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
 from ui.tabs.tab_train import TrainWidget
 
@@ -37,6 +37,7 @@ class TrainWidgetTest(unittest.TestCase):
         self.assertEqual(self.widget.ui.trainButton.text(), "Train Model")
 
     def test_nr_of_exercises(self):
+        """ Testing QSpinBox min-max """
         self.assertEqual(self.widget.ui.nrOfExercises.maximum(), 6)
         self.assertEqual(self.widget.ui.nrOfExercises.minimum(), 2)
 
@@ -44,10 +45,10 @@ class TrainWidgetTest(unittest.TestCase):
         """ Testing every button """
         subjectButton = self.widget.ui.subjectButton
         QTest.mouseClick(subjectButton, Qt.MouseButtons.LeftButton)
+        # trainButton = self.widget.ui.trainButton
+        # QTest.mouseClick(trainButton, Qt.MouseButtons.LeftButton)
         calibrateButton = self.widget.ui.calibrateButton
         QTest.mouseClick(calibrateButton, Qt.MouseButtons.LeftButton)
-        trainButton = self.widget.ui.trainButton
-        QTest.mouseClick(trainButton, Qt.MouseButtons.LeftButton)
         resultButton = self.widget.ui.resultButton
         QTest.mouseClick(resultButton, Qt.MouseButtons.LeftButton)
 
@@ -72,7 +73,7 @@ class TrainWidgetTest(unittest.TestCase):
         self.assertEqual(self.widget.ui.epochSlider.tickInterval(), 1)
 
     def test_subject_list(self):
-        """ Test subject list always having at least an item"""
+        """ Test subject list every item containing at least a letter"""
         self.assertEqual(all(self.widget.ui.listFiles.item(c).text().isalpha()
                              for c in range(0, self.widget.ui.listFiles.count())), True)
 

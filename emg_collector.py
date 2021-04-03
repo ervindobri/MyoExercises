@@ -6,7 +6,12 @@ import myo
 import numpy as np
 import datetime
 import os
+from constants.variables import streamed_data
+import threading
+import sys
+import time
 
+data = []
 class EmgCollector(myo.DeviceListener):
   """
   Collects EMG data in a queue with *n* maximum number of elements.
@@ -17,36 +22,41 @@ class EmgCollector(myo.DeviceListener):
     self.lock = Lock()
     self.emg_data_queue = deque(maxlen=n)
 
-  def get_emg_data(self):
-    with self.lock:
-      return list(self.emg_data_queue)
-
-  # myo.DeviceListener
-
   def on_connected(self, event):
     event.device.stream_emg(True)
 
   def on_emg(self, event):
-    # with self.lock:
-    self.emg_data_queue.append((event.timestamp, event.emg))
+    data.append(event.emg)
 
 
 
-data = []
 def main():
+    print(sys.version_info)
     myo.init(os.getcwd() + '\\services\\myo64.dll')
     hub = myo.Hub()
     listener = EmgCollector(512)
     print("Hello")
-    with hub.run_in_background(listener.on_event):
+
+    thread = threading.Thread(target=lambda:hub.run_forever(listener.on_event, 300))
+    thread.start()
+    average = 0.0
+    counter = 0
+    while counter < 50:
         start_time = datetime.datetime.now()
+
         while len(data) < 50:
             pass
+
         end_time = datetime.datetime.now()
-        print("Latency:", (end_time - start_time)*1000, "ms")
+        print("Latency:", (end_time - start_time).total_seconds()*1000, "ms")
+
         data.clear()
+        counter+=1
+        average += (end_time - start_time).total_seconds()*1000
 
-
+    print("Average:", average/counter, "ms")
+    hub.stop()
+    thread.join()
 
 if __name__ == '__main__':
   main()

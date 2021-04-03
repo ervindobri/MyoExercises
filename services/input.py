@@ -15,12 +15,15 @@ class InputController:
 
         self.input_map = input_map
         self.keyboard = Controller()
+        self.last_key = None
 
-    def simulateKey(self, key):
-        self.keyboard.press(key)
-        time.sleep(.3)
-        self.keyboard.release(key)
-        print(key, " - Key pressed successfully!")
+    def simulateKey(self, exercise):
+        if exercise.assigned_key[1] is not None:
+            if self.last_key is not None and self.last_key != exercise.assigned_key[1]:
+                self.keyboard.release(self.last_key) 
+            self.keyboard.press(exercise.assigned_key[1])
+            self.last_key = exercise.assigned_key[1]
+            # print(exercise.assigned_key[1], " - Key pressed successfully!")
 
 
     def startTest(self):

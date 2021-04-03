@@ -2,6 +2,8 @@
   <dictionary name="Winter">
     <words>
       <w>conc</w>
+      <w>crossentropy</w>
+      <w>tqdm</w>
     </words>
   </dictionary>
 </component>

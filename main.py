@@ -6,14 +6,13 @@ import time
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QApplication, QHBoxLayout, QPushButton, QMainWindow, \
-    QStatusBar, QStyle, QDialog
+    QStatusBar, QStyle
 from PyQt6.QtWidgets import QLabel
 from PyQt6.QtWidgets import QWidget
 
-from services.classify import ClassifyExercises
+from classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
 from helpers.myo_helpers import MyoService
-from ui.menu_bar.about import aboutThis
 from ui.menu_bar.config_dialog import ConfigDialog
 from ui.table_window import MainTabWidget
 
@@ -39,7 +38,7 @@ class HIMOApp(QMainWindow):
             time.sleep(3)
             self.classifyExercises = ClassifyExercises(
                 # subject="Ervin",
-                nr_of_samples=number_of_samples,
+                # nr_of_samples=number_of_samples,
                 epochs=300,
                 # nr_of_gestures=4,
                 exercises=PREDEFINED_EXERCISES,
@@ -68,7 +67,6 @@ class HIMOApp(QMainWindow):
         configAction = QAction("System configuration", self)
         config.triggered[QAction].connect(self.configWindow)
         config.addAction(configAction)
-
 
         self.setGeometry(self.left, self.top, self.width, self.height)
         self.setCentralWidget(self.table_widget)
@@ -104,8 +102,6 @@ class HIMOApp(QMainWindow):
         print("config..")
         widget = ConfigDialog(self)
         res = widget.exec()
-
-
 
 
 if __name__ == '__main__':
