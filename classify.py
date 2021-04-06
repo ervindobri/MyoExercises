@@ -41,6 +41,8 @@ class ClassifyExercises:
                  batch_size: int = 50,
                  training_batch_size: int = 32,
                  input_controller: InputController = None, ):
+        
+        self.subject = subject
         if exercises is None:
             self.exercises = {}
 
@@ -55,12 +57,6 @@ class ClassifyExercises:
         self.epochs = epochs
         self.training_batch_size = training_batch_size
 
-        # tiptoe_label = 0
-        # toe_crunches_label = 1
-        # left_lean_label = 2
-        # right_lean_label = 3
-        # rest_label = 4
-
         self.div = batch_size  # every 50 batch ( 1000/50 -> 20 data )
         self.averages = int(number_of_samples / batch_size)
         self.all_training_set = {}
@@ -70,18 +66,9 @@ class ClassifyExercises:
             self.all_training_set[i] = np.zeros((8, number_of_samples))
             self.all_averages.append(np.zeros((int(self.averages), 8)))
 
-        self.subject = subject
-
-        # self._tiptoe_training_set = np.zeros((8, number_of_samples))
-        # self._toe_crunches_training_set = np.zeros((8, number_of_samples))
-        # self._rest_training_set = np.zeros((8, number_of_samples))
 
         self.validation_set = np.zeros((8, number_of_samples))
         self.training_set = np.zeros((8, number_of_samples))
-
-        # self.tiptoe_averages = np.zeros((int(self.averages), 8))
-        # self.toe_crunches_averages = np.zeros((int(self.averages), 8))
-        # self.rest_averages = np.zeros((int(self.averages), 8))
 
         self.listener = Listener(number_of_samples)
         self.myoService = MyoService()
@@ -498,6 +485,6 @@ if __name__ == '__main__':
     # dummy.DisplayResults()
     # dummy.PredictGestures()
 
-    # dummy.TestPredict(100)
-    dummy.PredictAndPlay()
+    dummy.TestPredict(100)
+    # dummy.PredictAndPlay()
 
