@@ -1,6 +1,4 @@
-import datetime
 import threading
-
 import matplotlib
 import myo
 import numpy as np
@@ -10,8 +8,7 @@ from keras import regularizers
 from keras.models import load_model
 import matplotlib.pyplot as plt
 from tensorflow.python.keras.saving.save import save_model
-from typeguard import typechecked
-from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
+# from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
 
 # New Imports
 import warnings
@@ -28,12 +25,11 @@ from helpers.myo_helpers import Listener, MyoService, ForeverListener
 from services.custom_callback import CustomCallback
 from services.input import InputController
 
-matplotlib.use('Qt5Agg')
+# matplotlib.use('Qt5Agg')
 epoch_counter = 0
 
 
 class ClassifyExercises:
-    @typechecked
     def __init__(self,
                  subject: str = None,
                  exercises=None,
@@ -72,6 +68,8 @@ class ClassifyExercises:
 
         self.listener = Listener(number_of_samples)
         self.myoService = MyoService()
+        self.hub = myo.Hub()
+
 
     def PrepareTrainingData(self):
         # This function kills Myo Connect.exe and restarts it to make sure it is running
@@ -172,11 +170,11 @@ class ClassifyExercises:
                       metrics=['accuracy'])
 
         print("Fitting training data to the model...")
-        tqdm_callback = TQDMProgressBar(
-            show_epoch_progress=False,
-            leave_overall_progress=False,
-            leave_epoch_progress=False
-        )
+        # tqdm_callback = TQDMProgressBar(
+        #     show_epoch_progress=False,
+        #     leave_overall_progress=False,
+        #     leave_epoch_progress=False
+        # )
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
                             batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback, CustomCallback()])
@@ -283,7 +281,7 @@ class ClassifyExercises:
 
         print("Predicting gestures with ", number_of_samples, "nr. of samples.")
         while counter > 0:
-            start_time = datetime.datetime.now()
+            start_time = dt.datetime.now()
             # region PREDICT
             try:
                 # print("Show a foot gesture and press ENTER to get its classification!")
@@ -314,7 +312,7 @@ class ClassifyExercises:
             predictions = model.predict(validation_data, batch_size=self.training_batch_size)
             predicted_value = np.argmax(predictions[0])
             # endregion
-            end_time = datetime.datetime.now()
+            end_time = dt.datetime.now()
             execution_time = (end_time - start_time).total_seconds() * 1000
             average += execution_time
             print(list(self.exercises.values())[predicted_value].name)
@@ -364,74 +362,71 @@ class ClassifyExercises:
         thread.join()
 
 
-    def TestPredict(self, reps=50):
+    def TestPredict(self, reps=50, exercise_index = 0):
         import keyboard
         validation_averages = np.zeros((int(self.averages), 8))
         model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
+
         average = 0.0
         correct_predictions = 0
         predict_average = 0.0
         # Current exercise
-        exercise = list(self.exercises.values())[0]
+        exercise = list(self.exercises.values())[exercise_index]
         measured = {}
 
-        hub = myo.Hub()
         listener = ForeverListener(number_of_samples)
 
-        thread = threading.Thread(target=lambda:hub.run_forever(listener.on_event, 300))
+        thread = threading.Thread(target=lambda:self.hub.run_forever(listener.on_event, 100))
         thread.start()
+        
 
         print("Recording", exercise.name)
         print("------------------------")
         count = 0
-        while count < reps:
+        while count < reps+1:
             try:
-                # key = input('Press a key')
+                key = input('Press a key')
                 streamed_data.clear()
-                start_time = datetime.datetime.now()
+                start_time = time.time()
 
                 if keyboard.is_pressed("s"):
                     break
-                # if key == "b":
+                if key == "b":
 
-                # region STUFF
+                    # region STUFF
 
-                while len(streamed_data) < number_of_samples:
-                    pass
+                    while len(streamed_data) < number_of_samples:
+                        pass
 
-                # region PREDICT and REACT
-                predict_start_time = datetime.datetime.now()
+                    predict_start_time = time.time()
+                    current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
+                    self.validation_set = np.array(current_data)
+                    self.validation_set = np.absolute(self.validation_set)
 
-                current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
-                self.validation_set = np.array(current_data)
-                self.validation_set = np.absolute(self.validation_set)
+                    # We add one because iterator below starts from 1
+                    batches = int(number_of_samples / self.div) + 1
+                    for i in range(1, batches):
+                        validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
+                                                                axis=0)
 
-                # We add one because iterator below starts from 1
-                batches = int(number_of_samples / self.div) + 1
-                for i in range(1, batches):
-                    validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
-                                                            axis=0)
-
-                validation_data = validation_averages
-                predictions = model.predict(validation_data, batch_size=validation_data.shape[1])
-                predicted_value = np.argmax(predictions[0])
-                end_time = datetime.datetime.now()
-                predict_execution_time = (end_time - predict_start_time).total_seconds() * 1000
-                execution_time = (end_time - start_time).total_seconds() * 1000
-                print("Predicted exercise:", list(self.exercises.values())[predicted_value].name,
-                    " Prediction time: ", predict_execution_time, "ms, from total execution time: ",
-                    execution_time, "ms")
-                # key = list(self.exercises.values())[predicted_value].assigned_key[1]
-                # self.input_controller.simulateKey(key)
-                # endregion
-                
-                measured[count] = execution_time
-                average += execution_time
-                predict_average += predict_execution_time
-                count += 1
-                if exercise == list(self.exercises.values())[predicted_value]:
-                    correct_predictions+=1
-                # endregion
+                    validation_data = validation_averages
+                    predictions = model.predict(validation_data, batch_size=validation_data.shape[1])
+                    predicted_value = np.argmax(predictions[0])
+                    end_time = time.time()
+                    predict_execution_time = (end_time - predict_start_time) * 1000
+                    execution_time = (end_time - start_time) * 1000
+                    print("Predicted exercise:", list(self.exercises.values())[predicted_value].name,
+                        " Prediction time: ", predict_execution_time, "ms, from total execution time: ",
+                        execution_time, "ms")
+                    
+                    if count > 0 :
+                        measured[count] = execution_time
+                        average += execution_time
+                        predict_average += predict_execution_time
+                        if exercise == list(self.exercises.values())[predicted_value]:
+                            correct_predictions+=1
+                        # endregion
+                    count += 1
 
             except Exception as e:
                 if hasattr(e, 'message'):
@@ -439,6 +434,7 @@ class ClassifyExercises:
                 else:
                     print(e)
                 pass
+
         print("Stopping hub & joining thread.")
 
         hub.stop()
@@ -449,8 +445,8 @@ class ClassifyExercises:
         print("Average:", measured["Average"])
         print("Prediction Average:", measured["Prediction Average"])
         print("Accuracy per",reps, ": " , measured["Accuracy"]*100 , "%")
-        # print("Saving measured data...")
-        # self.SaveMeasurement(exercise, measured)
+        print("Saving measured data...")
+        self.SaveMeasurement(exercise, measured)
 
     def SaveMeasurement(self, exercise, content):
         import json
@@ -485,6 +481,10 @@ if __name__ == '__main__':
     # dummy.DisplayResults()
     # dummy.PredictGestures()
 
-    dummy.TestPredict(100)
-    # dummy.PredictAndPlay()
+    # indexes: 0 - TT,
+    #          1 - TC,
+    #          2 - UP,
+    #          3 - R
+    # dummy.TestPredict(50, 3)
+    dummy.PredictAndPlay()
 

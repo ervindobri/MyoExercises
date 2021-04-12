@@ -1,0 +1,7 @@
+RESULTS CLASSIFYING 4 DIFFERENT FOOT EXERCISES
+==============================================================
+INDEX    E_CODE    E_NAME    SUCC    REPS    FAIL             ACC(%)          
+0        TT        tiptoe      49      50      TC             98
+1        TC        tcrunches   45      50      R,R,UP,UP,R    90  
+2        UP        toesup      49      50      1R             98
+3        R         rest        50      50      0              100
