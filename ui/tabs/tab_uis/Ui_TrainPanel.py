@@ -4,12 +4,13 @@ from os.path import join, isfile
 
 from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIntValidator, QPixmap
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBox, QFormLayout, QLineEdit, QPushButton, \
     QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QWizard, QWizardPage
 
 from ui.custom_slider import Slider
 from ui.custom_widgets.two_list_selection import TwoListSelection
-
+from ui.custom_styles import CustomQStyles
 FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
 # FULL_MODEL_PATH = '/data/results/training_data'
 
@@ -24,17 +25,31 @@ class Ui_TrainPanel(object):
         self.label_minimum = QLabel(parent=TrainPanel)
         self.slider_hbox = QHBoxLayout(TrainPanel)
         self.slider_vbox = QVBoxLayout(TrainPanel)
-        self.nrOfExercises = QSpinBox(TrainPanel)
+        # self.nrOfExercises = QSpinBox(TrainPanel)
         self.batchSizeMenu = QComboBox(TrainPanel)
         self.properties = QFormLayout(TrainPanel)
         self.epochSlider = Slider(orientation=QtCore.Qt.Orientations.Horizontal, parent=TrainPanel)
 
         self.subjectEdit = QLineEdit(TrainPanel)
+        self.subjectEdit.setFixedHeight(30)
+        self.subjectEdit.setPlaceholderText("Jozsika")
+        self.subjectEdit.setStyleSheet(CustomQStyles.lineEditStyle)
+
+        self.ageEdit = QLineEdit(TrainPanel)
+        self.ageEdit.setFixedHeight(30)
+        self.ageEdit.setPlaceholderText("5")
+        self.ageEdit.setValidator(QIntValidator())
+        self.ageEdit.setStyleSheet(CustomQStyles.lineEditStyle)
+
         self.subjectButton = QPushButton('New', parent=TrainPanel)
+        self.subjectButton.setFixedHeight(30)
+        self.subjectButton.setStyleSheet(CustomQStyles.outlineButtonStyle)
+
         # print(parent)
         self.actionsLayout = QHBoxLayout(TrainPanel)
-        self.checkRecording = QCheckBox(TrainPanel)
-        self.calibrateButton = QPushButton("Calibrate new model", parent=TrainPanel)
+        # self.checkRecording = QCheckBox(TrainPanel)
+        self.calibrateButton = QPushButton("Calibrate", parent=TrainPanel)
+        self.calibrateButton.setStyleSheet(CustomQStyles.buttonStyle)
         self.calibrateButton.setMinimumHeight(50)
         self.calibrateButton.setMaximumWidth(120)
 
@@ -50,7 +65,7 @@ class Ui_TrainPanel(object):
         print("init")
 
         self.box1 = QGroupBox(title="Subject", parent=TrainPanel)
-        self.box2 = QGroupBox(title="Options", parent=TrainPanel)
+        self.box2 = QGroupBox(parent=TrainPanel)
         self.wizard = QWizard(parent=TrainPanel)
 
         self.setSubjectPanel(TrainPanel)  # right panel
@@ -64,15 +79,7 @@ class Ui_TrainPanel(object):
 
     # Display progress bar, checkbox - to record new gestures or not, start train
     def trainPanel(self, TrainPanel):
-        self.checkRecording.setToolTip("Checking this will open a new window where you can calibrate the "
-                                       "exercises and train a new model.")
 
-        self.nrOfExercises.setRange(2, 6)
-        self.nrOfExercises.setToolTip("Select the number of exercises you want to do. Rest exercise included.")
-        self.nrOfExercises.setMaximumWidth(100)
-
-        self.form_layout2.addRow('Number of exercises:', self.nrOfExercises)
-        self.form_layout2.addRow('Record gestures:', self.checkRecording)
         hLayout = QHBoxLayout()
         hLayout.addLayout(self.form_layout2)
         hLayout.addWidget(self.calibrateButton)
@@ -148,13 +155,6 @@ class Ui_TrainPanel(object):
     def createWizard(self, TrainPanel):
         self.wizard.setWizardStyle(QWizard.WizardStyle.ModernStyle)
 
-        # self.wizard.setPixmap(QWizard.WizardPixmap.WatermarkPixmap,
-        #                       QPixmap('Watermark.png'))
-        # self.wizard.setPixmap(QWizard.WizardPixmap.LogoPixmap,
-        #                       QPixmap('Logo.png'))
-        # self.wizard.setPixmap(QWizard.WizardPixmap.BannerPixmap,
-        #                       QPixmap('Banner.png'))
-
         # CREATE PAGE 1, LINE EDIT, TITLES
         page1 = QWizardPage()
         page1.setTitle('Select the exercises you wish to do later')
@@ -165,38 +165,48 @@ class Ui_TrainPanel(object):
         hLayout1.addWidget(self.listSelection)
 
         # CREATE PAGE 2, LABEL, TITLES
-        page2 = QWizardPage()
-        page2.setFinalPage(True)
-        page2.setTitle('Page 2 is better!')
-        page2.setSubTitle('Lies!')
-        label = QLabel()
-        hLayout2 = QHBoxLayout(page2)
-        hLayout2.addWidget(label)
-        self.listWidget = QListWidget()
+        self.page2 = QWizardPage()
+        self.page2.setFinalPage(True)
+        self.page2.setTitle('Calibrate every exercise')
+        self.page2.setSubTitle('Do every exercise once, record after pressing button.')
+        self.hLayout2 = QHBoxLayout(self.page2)
         itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in range(self.listSelection.mInput.count())]
-        print(itemsTextList)
-        self.listWidget.addItems(itemsTextList)
-        hLayout2.addWidget(self.listWidget)
+        print("items:", itemsTextList)
+
 
         nxt = self.wizard.button(QWizard.WizardButton.NextButton)
 
-        func = lambda: label.setText(page1.field('myField'))
         nxt.clicked.connect(self.onWizardNextButton)
         self.wizard.addPage(page1)
-        self.wizard.addPage(page2)
-
-        print()
+        self.wizard.addPage(self.page2)
 
     # Send list to next page
     def onWizardNextButton(self):
         itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in range(self.listSelection.mInput.count())]
         print(itemsTextList)
-        self.listWidget.clear()
-        self.listWidget.addItems(itemsTextList)
+        # self.listWidget.clear()
+        # self.listWidget.addItems(itemsTextList)
+        for x in itemsTextList:
+            print(x)
+            exerciseLayout = QVBoxLayout()
+            image = QLabel()
+            label = QLabel(x)
+            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/ellipse.png"))
+            exerciseLayout.addWidget(label)
+            exerciseLayout.addWidget(image)
+            button = QPushButton("Record")
+            button.setFixedSize(100, 35)
+            button.setStyleSheet(CustomQStyles.buttonStyle)
+            exerciseLayout.addWidget(button)
+            exerciseLayout.setAlignment(label, Qt.Alignment.AlignCenter)
+            exerciseLayout.setAlignment(image, Qt.Alignment.AlignCenter)
+            exerciseLayout.setAlignment(button, Qt.Alignment.AlignCenter)
+            self.hLayout2.addLayout(exerciseLayout)
 
     # Display list of subjects, or new subject
     def setSubjectPanel(self, TrainPanel):
-        self.form_layout.addRow('Name:', self.subjectEdit)
+        self.form_layout.addRow('Name', self.subjectEdit)
+        self.form_layout.addRow('Age', self.ageEdit)
         self.form_layout.addWidget(self.subjectButton)
 
         self.label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)

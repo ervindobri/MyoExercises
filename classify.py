@@ -11,7 +11,7 @@ from keras.models import load_model
 import matplotlib.pyplot as plt
 from tensorflow.python.keras.saving.save import save_model
 from typeguard import typechecked
-# from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
+from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
 
 # New Imports
 import warnings
@@ -172,11 +172,11 @@ class ClassifyExercises:
                       metrics=['accuracy'])
 
         print("Fitting training data to the model...")
-        # tqdm_callback = TQDMProgressBar(
-        #     show_epoch_progress=False,
-        #     leave_overall_progress=False,
-        #     leave_epoch_progress=False
-        # )
+        tqdm_callback = TQDMProgressBar(
+            show_epoch_progress=False,
+            leave_overall_progress=False,
+            leave_epoch_progress=False
+        )
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
                             batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback, CustomCallback()])

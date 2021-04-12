@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QMessageBox, QWidget
+from PyQt6.QtWidgets import QMessageBox, QWidget, QHBoxLayout
 from PyQt6 import QtCore
 
 from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
@@ -29,7 +29,7 @@ class TrainWidget(QWidget):
         self.ui.batchSizeMenu.currentIndexChanged.connect(self.onBatchSizeSelected)
         self.ui.subjectButton.clicked.connect(self.onSubjectSelected)
         self.ui.listFiles.clicked.connect(self.listClicked)
-        self.ui.checkRecording.clicked.connect(self.onRecordChecked)
+        # self.ui.checkRecording.clicked.connect(self.onRecordChecked)
         self.ui.calibrateButton.clicked.connect(self.onCalibrateClicked)
         self.ui.resultButton.clicked.connect(self.onResultClicked)
         self.ui.trainButton.clicked.connect(self.onTrainClicked)
@@ -40,6 +40,7 @@ class TrainWidget(QWidget):
             if self.classifyExercises.subject is not None:
                 self.ui.wizard.setWindowTitle("Create new ML Model for " + self.classifyExercises.subject)
                 self.ui.listSelection.mOuput.clear()
+                self.ui.listSelection.mInput.clear()
                 self.ui.listSelection.mOuput.addItems([e.name for e in self.classifyExercises.exercises.values()])
                 self.ui.wizard.show()
 
@@ -111,11 +112,13 @@ class TrainWidget(QWidget):
         print(num)
 
     def onSubjectSelected(self):
-        print(self.ui.subjectEdit.text())
-        self.subject = self.ui.subjectEdit.text()
-        self.ui.showDialog("Information",
-                           "Subject name set to" + self.subject,
-                           QMessageBox.StandardButtons.Ok)
+        if self.classifyExercises is not None \
+                and "" != self.ui.subjectEdit.text() \
+                and "" != self.ui.ageEdit.text():
+            self.subject = self.ui.subjectEdit.text()
+            self.classifyExercises.subject = self.subject
+            self.classifyExercises.age = self.ui.ageEdit.text()
+            self.infoLabel.setText("Subject name set to " + self.subject + ", age " + self.classifyExercises.age)
 
     # TODO: train model
     def listClicked(self, index):

@@ -35,7 +35,7 @@ class HIMOApp(QMainWindow):
 
         if MyoService.check_if_process_running():
             print("Myo Connect is running!")
-            time.sleep(3)
+            time.sleep(1)
             self.classifyExercises = ClassifyExercises(
                 # subject="Ervin",
                 # nr_of_samples=number_of_samples,
