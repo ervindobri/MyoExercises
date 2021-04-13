@@ -16,9 +16,10 @@ import time
 import datetime as dt
 import pickle
 
+from tensorflow_addons.callbacks import TQDMProgressBar
 
 from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data, \
-    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, change_sample_size
+    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, change_sample_size, validation_samples
 from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
@@ -32,23 +33,25 @@ epoch_counter = 0
 class ClassifyExercises:
     def __init__(self,
                  subject: str = None,
+                 age: int = 0,
                  exercises=None,
                  epochs: int = 300,
-                 batch_size: int = 50,
+                 batch_size: int = 25,
                  training_batch_size: int = 32,
                  input_controller: InputController = None, ):
-        
+
         self.subject = subject
+        self.age = age
+
         if exercises is None:
-            self.exercises = {}
+            self.exercises = []
 
         self.exercises = exercises
-        self.number_of_gestures = len(list(self.exercises.values()))
+        self.number_of_gestures = len(self.exercises)
         self.epoch_counter = 0
 
         if input_controller is None:
             self.input_controller = InputController()
-
 
         self.epochs = epochs
         self.training_batch_size = training_batch_size
@@ -62,14 +65,12 @@ class ClassifyExercises:
             self.all_training_set[i] = np.zeros((8, number_of_samples))
             self.all_averages.append(np.zeros((int(self.averages), 8)))
 
-
         self.validation_set = np.zeros((8, number_of_samples))
         self.training_set = np.zeros((8, number_of_samples))
 
         self.listener = Listener(number_of_samples)
         self.myoService = MyoService()
         self.hub = myo.Hub()
-
 
     def PrepareTrainingData(self):
         # This function kills Myo Connect.exe and restarts it to make sure it is running
@@ -80,7 +81,7 @@ class ClassifyExercises:
         time.sleep(3)
         for x in range(0, len(self.exercises)):
             # Take current exercise from dict.
-            exercise = list(self.exercises.values())[x]
+            exercise = self.exercises[x]
             # Log current instructions
             instructions = exercise.instruction
             print("Instructions: ", instructions)
@@ -103,17 +104,58 @@ class ClassifyExercises:
             print(exercise.name, "data ready")
             time.sleep(1)
 
-        hub.stop()
+        self.hub.stop()
 
-        result_array = self.calculateMeanData()
+        result_array = self.calculateAllMeanData()
         self.SaveProcessedData(result_array)
+
+    def UpdateExerciseList(self, itemsTextList):
+        new_exercises = []
+        self.all_training_set = {}
+        self.all_averages = []
+        for x in range(len(itemsTextList)):
+            exercise = next(ex for ex in PREDEFINED_EXERCISES if ex.name == itemsTextList[x])
+            new_exercises.append(exercise)
+            self.all_training_set[x] = np.zeros((8, number_of_samples))
+            self.all_averages.append(np.zeros((int(self.averages), 8)))
+
+        print("New exercises:", len(new_exercises))
+        self.exercises = new_exercises
+        self.number_of_gestures = len(new_exercises)
+
+    def RecordExercise(self, exercise_name):
+        hub = myo.Hub()
+        exercise = self.exercises[0]
+        index = 0
+        for ex in self.exercises:
+            if ex.name == exercise_name:
+                exercise = ex
+                index = self.exercises.index(ex)
+
+        print("Exercise name:", exercise.name, ", index: ", index)
+        while True:
+            try:
+                listener = Listener(number_of_samples)
+                hub.run(listener.on_event, 3000)
+                current_training_set = np.array((data_array[0]))
+                print(current_training_set)
+                data_array.clear()
+                break
+            except Exception as e:
+                print(e)
+
+        print(exercise.name, "data ready")
+        self.hub.stop()
+        result_array = self.CalculateMeanData(current_training_set)
+        self.all_averages[index] = result_array
+        # self.SaveProcessedData(result_array)
 
     # This method is responsible for training EMG data - requirements: loading back .txt data,
     def TrainEMG(self):
         labels = []
 
         print("Loading data from disk!")
-        prepare_array = np.loadtxt(RESULT_PATH + DATA_PATH + self.subject + '.txt')
+        prepare_array = np.loadtxt(RESULT_PATH + DATA_PATH + self.subject + '-' + self.age + '.txt')
 
         # This division is to make the iterator for making labels run 20 times in inner loop and 3 times in outer loop
         # running total 60 times for 3 foot gestures
@@ -170,11 +212,11 @@ class ClassifyExercises:
                       metrics=['accuracy'])
 
         print("Fitting training data to the model...")
-        # tqdm_callback = TQDMProgressBar(
-        #     show_epoch_progress=False,
-        #     leave_overall_progress=False,
-        #     leave_epoch_progress=False
-        # )
+        tqdm_callback = TQDMProgressBar(
+            show_epoch_progress=False,
+            leave_overall_progress=False,
+            leave_epoch_progress=False
+        )
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
                             batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback, CustomCallback()])
@@ -193,8 +235,15 @@ class ClassifyExercises:
         with open(filepath, 'wb') as file_pi:
             pickle.dump(history.history, file_pi)
 
-    def calculateMeanData(self):
+    def CalculateMeanData(self, data):
+        training_set = np.absolute(data)
+        current_average = np.zeros((int(self.averages), 8))
+        for i in range(1, self.averages + 1):
+            current_average[i - 1, :] = np.mean(training_set[(i - 1) * self.div:i * self.div, :], axis=0)
 
+        return current_average
+
+    def calculateAllMeanData(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             # Calculate Absolutes of foot gesture data - every EXERCISE set -> tiptoe, toe crunches, rest. etc...
@@ -205,8 +254,7 @@ class ClassifyExercises:
             # because 50 batches of n samples is equal to n/50 averages
             for i in range(1, self.averages + 1):
                 for x in range(0, self.number_of_gestures):
-                    print("Gesture:", x, " - Mean: ", np.mean(
-                        self.all_training_set[x][(i - 1) * self.div:i * self.div, :], axis=0))
+                    print("Gesture:", x, " - Mean: ")
                     self.all_averages[x][i - 1, :] = np.mean(
                         self.all_training_set[x][(i - 1) * self.div:i * self.div, :], axis=0)
 
@@ -214,9 +262,13 @@ class ClassifyExercises:
             conc_array = np.concatenate(self.all_averages, axis=0)
             return conc_array
 
-    def SaveProcessedData(self, array):
+    def SaveProcessedData(self, array=None):
         try:
-            np.savetxt(RESULT_PATH + DATA_PATH + self.subject + '.txt', array, fmt='%i')
+            print("Trying  to save data...")
+            if array is None:
+                array = np.concatenate(self.all_averages, axis=0)
+
+            np.savetxt(RESULT_PATH + DATA_PATH + self.subject + '-' + str(self.age) + '.txt', array, fmt='%i')
             instructions = "Saving training data successful!"
             print(instructions)
             # self.prepare_array = array
@@ -322,17 +374,15 @@ class ClassifyExercises:
         print(average)
         # pause
 
-
     def PredictAndPlay(self):
         import keyboard
 
         validation_averages = np.zeros((int(self.averages), 8))
         model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
-
         hub = myo.Hub()
-        listener = ForeverListener(number_of_samples)
+        listener = ForeverListener(validation_samples)
 
-        thread = threading.Thread(target=lambda:hub.run_forever(listener.on_event, 300))
+        thread = threading.Thread(target=lambda: hub.run_forever(listener.on_event, 300))
         thread.start()
 
         while 1:
@@ -340,15 +390,15 @@ class ClassifyExercises:
             if keyboard.is_pressed("s"):
                 break
 
-            while len(streamed_data) < number_of_samples:
+            while len(streamed_data) < validation_samples:
                 pass
 
-            current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
+            current_data = streamed_data[-validation_samples:]  # get last nr_of_samples elements from list
             self.validation_set = np.array(current_data)
             self.validation_set = np.absolute(self.validation_set)
 
             # We add one because iterator below starts from 1
-            batches = int(number_of_samples / self.div) + 1
+            batches = int(validation_samples / self.div) + 1
             for i in range(1, batches):
                 validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
                                                         axis=0)
@@ -361,8 +411,7 @@ class ClassifyExercises:
         hub.stop()
         thread.join()
 
-
-    def TestPredict(self, reps=50, exercise_index = 0):
+    def TestPredict(self, reps=50, exercise_index=0):
         import keyboard
         validation_averages = np.zeros((int(self.averages), 8))
         model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
@@ -376,14 +425,13 @@ class ClassifyExercises:
 
         listener = ForeverListener(number_of_samples)
 
-        thread = threading.Thread(target=lambda:self.hub.run_forever(listener.on_event, 100))
+        thread = threading.Thread(target=lambda: self.hub.run_forever(listener.on_event, 100))
         thread.start()
-        
 
         print("Recording", exercise.name)
         print("------------------------")
         count = 0
-        while count < reps+1:
+        while count < reps + 1:
             try:
                 key = input('Press a key')
                 streamed_data.clear()
@@ -416,15 +464,15 @@ class ClassifyExercises:
                     predict_execution_time = (end_time - predict_start_time) * 1000
                     execution_time = (end_time - start_time) * 1000
                     print("Predicted exercise:", list(self.exercises.values())[predicted_value].name,
-                        " Prediction time: ", predict_execution_time, "ms, from total execution time: ",
-                        execution_time, "ms")
-                    
-                    if count > 0 :
+                          " Prediction time: ", predict_execution_time, "ms, from total execution time: ",
+                          execution_time, "ms")
+
+                    if count > 0:
                         measured[count] = execution_time
                         average += execution_time
                         predict_average += predict_execution_time
                         if exercise == list(self.exercises.values())[predicted_value]:
-                            correct_predictions+=1
+                            correct_predictions += 1
                         # endregion
                     count += 1
 
@@ -437,14 +485,14 @@ class ClassifyExercises:
 
         print("Stopping hub & joining thread.")
 
-        hub.stop()
+        self.hub.stop()
         thread.join()
         measured["Average"] = average / reps
         measured["Prediction Average"] = predict_average / reps
         measured["Accuracy"] = correct_predictions / reps
         print("Average:", measured["Average"])
         print("Prediction Average:", measured["Prediction Average"])
-        print("Accuracy per",reps, ": " , measured["Accuracy"]*100 , "%")
+        print("Accuracy per", reps, ": ", measured["Accuracy"] * 100, "%")
         print("Saving measured data...")
         self.SaveMeasurement(exercise, measured)
 
@@ -487,4 +535,3 @@ if __name__ == '__main__':
     #          3 - R
     # dummy.TestPredict(50, 3)
     dummy.PredictAndPlay()
-

@@ -9,7 +9,10 @@ from models.exercise import Exercise
 data_array = []
 streamed_data = []
 
-number_of_samples = 50  # change this
+number_of_samples = 500
+validation_samples = 50
+
+
 # Sensor1 = zeros((1, number_of_samples))
 # Sensor2 = zeros((1, number_of_samples))
 # Sensor3 = zeros((1, number_of_samples))
@@ -48,7 +51,7 @@ KEYS = {
     "DOWN": Key.down,
     "LEFT": Key.left,
     "RIGHT": Key.right,
-    "NONE" : Key.menu
+    "NONE": Key.menu
 }
 
 SUPPORTED_KEYS = {
@@ -69,10 +72,10 @@ SUPPORTED_KEYS = {
 #     TOES_UP = 3
 #     REST = 3
 
-PREDEFINED_EXERCISES = {
-    "TT": Exercise(name="Tip Toe", code="TT", instruction="Stand on your toes!", assigned_key=("UP", KEYS["UP"])),
-    "TC": Exercise(name="Toe Crunches", code="TC", instruction="Crunch your toes like a fist!",
-                   assigned_key=("LEFT", KEYS["LEFT"])),
-    "UP": Exercise(name="Toes UP", code="UP", instruction="Move your toes up!", assigned_key=("RIGHT", KEYS["RIGHT"])),
-    "R": Exercise(name="Rest", code="R", instruction="Rest your feet...", assigned_key=("NONE", None)),
-}
+PREDEFINED_EXERCISES = [
+    Exercise(name="Tip Toe", code="TT", instruction="Stand on your toes!", assigned_key=("UP", KEYS["UP"])),
+    Exercise(name="Toe Crunches", code="TC", instruction="Crunch your toes like a fist!",
+             assigned_key=("LEFT", KEYS["LEFT"])),
+    Exercise(name="Toes UP", code="UP", instruction="Move your toes up!", assigned_key=("RIGHT", KEYS["RIGHT"])),
+    Exercise(name="Rest", code="R", instruction="Rest your feet...", assigned_key=("NONE", None)),
+]

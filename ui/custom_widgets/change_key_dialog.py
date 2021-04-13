@@ -16,6 +16,7 @@ class ChangeKeyDialog(QDialog):
                  ):
         super(ChangeKeyDialog, self).__init__(parent)
         layout = QVBoxLayout(self)
+        self.setLayout(layout)
         widget = QWidget()
         keyLayout = QVBoxLayout()
         widget.setStyleSheet("""
@@ -52,7 +53,7 @@ class ChangeKeyDialog(QDialog):
         self.buttons = buttons
         self.exercises = exercises
         self.index = index
-        self.setLayout(layout)
+
 
         self.monitor = KeyMonitor()
         self.monitor.start_monitoring()

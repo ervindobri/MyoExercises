@@ -1,4 +1,6 @@
 class CustomQStyles:
+
+
     blue = "#00bbde"
     lightBlue = "#a0f1ff"
 
@@ -52,3 +54,12 @@ class CustomQStyles:
             border-radius: 7px;
         }
     """
+    recordButtonStyle = """
+        QPushButton
+        {
+            background-color: #00bbde;
+            border: 1px solid red;
+            color: white;
+            font-weight: bold;
+            border-radius: 7px;
+        }"""

@@ -11,7 +11,7 @@ class InputController:
     def __init__(self, input_map=None):
         print("Initializing input controller...")
         if input_map is None:
-            input_map = {PREDEFINED_EXERCISES["R"]}
+            input_map = {PREDEFINED_EXERCISES[0]}
 
         self.input_map = input_map
         self.keyboard = Controller()

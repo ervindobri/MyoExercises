@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QMessageBox, QWidget, QHBoxLayout
 from PyQt6 import QtCore
 
+from constants.variables import PREDEFINED_EXERCISES
+from ui.custom_widgets.session_dialog import SessionDialog
 from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
 from ui.custom_widgets.dialog import DateDialog
 from ui.thread_helpers.thread_helpers import progressThread, trainThread
@@ -10,7 +12,6 @@ class TrainWidget(QWidget):
     def __init__(self, parent=None):
         super(TrainWidget, self).__init__(parent)
         self.ui = Ui_TrainPanel()
-        self.ui.setupUi(self)
         self.subject = ""
 
         self.classifyExercises = None
@@ -22,6 +23,7 @@ class TrainWidget(QWidget):
             self.progress_thread = progressThread(self.classifyExercises)
             self.trainThread = trainThread(self.classifyExercises)
 
+        self.ui.setupUi(self)
         self.connections()
 
     def connections(self):
@@ -31,17 +33,26 @@ class TrainWidget(QWidget):
         self.ui.listFiles.clicked.connect(self.listClicked)
         # self.ui.checkRecording.clicked.connect(self.onRecordChecked)
         self.ui.calibrateButton.clicked.connect(self.onCalibrateClicked)
+        self.ui.sessionButton.clicked.connect(self.onSessionClicked)
         self.ui.resultButton.clicked.connect(self.onResultClicked)
         self.ui.trainButton.clicked.connect(self.onTrainClicked)
         self.ui.epochSlider.valueChanged.connect(self.updateEpochValue)
 
+    def onSessionClicked(self):
+        dialog = SessionDialog()
+        dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
+        dialog.exec()
+
     def onCalibrateClicked(self):
         if self.classifyExercises is not None:
             if self.classifyExercises.subject is not None:
+                # self.ui.createWizard(self)
                 self.ui.wizard.setWindowTitle("Create new ML Model for " + self.classifyExercises.subject)
-                self.ui.listSelection.mOuput.clear()
+                self.ui.recordReady = []
                 self.ui.listSelection.mInput.clear()
-                self.ui.listSelection.mOuput.addItems([e.name for e in self.classifyExercises.exercises.values()])
+                self.ui.listSelection.mOuput.clear()
+                self.ui.listSelection.mOuput.addItems([e.name for e in PREDEFINED_EXERCISES])
+                self.ui.wizard.restart()
                 self.ui.wizard.show()
 
             else:
@@ -125,4 +136,8 @@ class TrainWidget(QWidget):
         item = self.ui.listFiles.currentItem()
         print(item.text())
         if self.classifyExercises is not None:
-            self.classifyExercises.subject = item.text()
+            name, age = item.text().split('-')
+            self.classifyExercises.subject = name
+            self.classifyExercises.age = age
+            self.infoLabel.setText("Subject name set to " + name + ", age " + age)
+

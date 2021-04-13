@@ -1,3 +1,4 @@
+import functools
 import os
 from os import listdir
 from os.path import join, isfile
@@ -6,18 +7,25 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIntValidator, QPixmap
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBox, QFormLayout, QLineEdit, QPushButton, \
-    QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QWizard, QWizardPage
+    QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QWizard, \
+    QWizardPage
 
 from ui.custom_slider import Slider
 from ui.custom_widgets.two_list_selection import TwoListSelection
 from ui.custom_styles import CustomQStyles
+from ui.thread_helpers.thread_helpers import RecordThread
+
 FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
+
+
 # FULL_MODEL_PATH = '/data/results/training_data'
 
 
 class Ui_TrainPanel(object):
 
     def setupUi(self, TrainPanel):
+        self.parent = TrainPanel
+
         self.mainLayout = QHBoxLayout(TrainPanel)
         self.epochValue = QLabel(parent=TrainPanel)
         self.vbox = QVBoxLayout(TrainPanel)
@@ -53,6 +61,11 @@ class Ui_TrainPanel(object):
         self.calibrateButton.setMinimumHeight(50)
         self.calibrateButton.setMaximumWidth(120)
 
+        self.sessionButton = QPushButton("Session", parent=TrainPanel)
+        self.sessionButton.setStyleSheet(CustomQStyles.outlineButtonStyle)
+        self.sessionButton.setMinimumHeight(50)
+        self.sessionButton.setMaximumWidth(120)
+
         self.trainButton = QPushButton('Train Model', parent=TrainPanel)
         self.resultButton = QPushButton('Show result image', parent=TrainPanel)
         self.progress = QProgressBar(TrainPanel)
@@ -71,10 +84,16 @@ class Ui_TrainPanel(object):
         self.setSubjectPanel(TrainPanel)  # right panel
         self.trainPanel(TrainPanel)  # left panel
         self.createWizard(TrainPanel)
+        self.buttons = []
+        self.images = []
+        self.labels = []
+        self.exerciseLayouts = []
+        self.recordReady = []
 
         self.mainLayout.addWidget(self.box1, stretch=1)
         self.mainLayout.addWidget(self.box2, stretch=2)
 
+        self.recordThread = RecordThread(self.parent.classifyExercises)
         # self.retranslateUi(TrainPanel)
 
     # Display progress bar, checkbox - to record new gestures or not, start train
@@ -83,6 +102,7 @@ class Ui_TrainPanel(object):
         hLayout = QHBoxLayout()
         hLayout.addLayout(self.form_layout2)
         hLayout.addWidget(self.calibrateButton)
+        hLayout.addWidget(self.sessionButton)
 
         self.batchSizeMenu.addItems(['2', '4', '8', '16', '32', '64', '128'])
         self.batchSizeMenu.setCurrentIndex(3)
@@ -154,8 +174,8 @@ class Ui_TrainPanel(object):
 
     def createWizard(self, TrainPanel):
         self.wizard.setWizardStyle(QWizard.WizardStyle.ModernStyle)
-
         # CREATE PAGE 1, LINE EDIT, TITLES
+        buttons_layout = [QWizard.WizardButton.NextButton, QWizard.WizardButton.FinishButton]
         page1 = QWizardPage()
         page1.setTitle('Select the exercises you wish to do later')
         page1.setSubTitle('Below are listed all the available and selected exercises by you.')
@@ -167,41 +187,78 @@ class Ui_TrainPanel(object):
         # CREATE PAGE 2, LABEL, TITLES
         self.page2 = QWizardPage()
         self.page2.setFinalPage(True)
+        self.wizard.setButtonLayout(buttons_layout)
         self.page2.setTitle('Calibrate every exercise')
         self.page2.setSubTitle('Do every exercise once, record after pressing button.')
         self.hLayout2 = QHBoxLayout(self.page2)
-        itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in range(self.listSelection.mInput.count())]
+        itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in
+                         range(self.listSelection.mInput.count())]
         print("items:", itemsTextList)
 
-
         nxt = self.wizard.button(QWizard.WizardButton.NextButton)
-
         nxt.clicked.connect(self.onWizardNextButton)
+        self.wizard.button(QWizard.WizardButton.FinishButton).clicked.connect(self.onWizardFinishButton)
         self.wizard.addPage(page1)
         self.wizard.addPage(self.page2)
 
+    def onWizardFinishButton(self):
+        if all(x == True for x in self.recordReady):
+            print("All recorded!")
+            if self.parent.classifyExercises is not None:
+                self.parent.classifyExercises.SaveProcessedData()
+        else:
+            print("Not all recorded!")
+
     # Send list to next page
     def onWizardNextButton(self):
-        itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in range(self.listSelection.mInput.count())]
-        print(itemsTextList)
-        # self.listWidget.clear()
-        # self.listWidget.addItems(itemsTextList)
-        for x in itemsTextList:
-            print(x)
-            exerciseLayout = QVBoxLayout()
+
+        itemsTextList = [str(self.listSelection.mInput.item(i).text())
+                         for i in range(self.listSelection.mInput.count())]
+        # Update list
+        if self.parent.classifyExercises is not None:
+            self.parent.classifyExercises.UpdateExerciseList(itemsTextList)
+
+        # Set elements on UI
+        self.wizard.setMinimumWidth(len(itemsTextList) * 200)
+        self.deleteItemsOfLayout(self.hLayout2)
+        self.images.clear()
+        self.labels.clear()
+        self.buttons.clear()
+        for x, i in zip(itemsTextList, range(len(itemsTextList))):
+            self.exerciseLayouts.append(QVBoxLayout())
+            self.buttons.append(QPushButton('Record'))
+            self.recordReady.append(False)
             image = QLabel()
-            label = QLabel(x)
-            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/ellipse.png"))
-            exerciseLayout.addWidget(label)
-            exerciseLayout.addWidget(image)
-            button = QPushButton("Record")
-            button.setFixedSize(100, 35)
-            button.setStyleSheet(CustomQStyles.buttonStyle)
-            exerciseLayout.addWidget(button)
-            exerciseLayout.setAlignment(label, Qt.Alignment.AlignCenter)
-            exerciseLayout.setAlignment(image, Qt.Alignment.AlignCenter)
-            exerciseLayout.setAlignment(button, Qt.Alignment.AlignCenter)
-            self.hLayout2.addLayout(exerciseLayout)
+            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/" + itemsTextList[i] + ".png"))
+            self.labels.append(QLabel(itemsTextList[i]))
+            self.images.append(image)
+            self.buttons[i].setFixedSize(100, 35)
+            self.buttons[i].clicked.connect(functools.partial(self.onRecordExerciseButtonClicked, x, i))
+            self.buttons[i].setStyleSheet(CustomQStyles.buttonStyle)
+            self.exerciseLayouts[i].addWidget(self.labels[i])
+            self.exerciseLayouts[i].addWidget(self.images[i])
+            self.exerciseLayouts[i].addWidget(self.buttons[i])
+            self.exerciseLayouts[i].setAlignment(self.labels[i], Qt.Alignment.AlignCenter)
+            self.exerciseLayouts[i].setAlignment(self.images[i], Qt.Alignment.AlignCenter)
+            self.exerciseLayouts[i].setAlignment(self.buttons[i], Qt.Alignment.AlignCenter)
+            self.hLayout2.addLayout(self.exerciseLayouts[i])
+
+    def onRecordExerciseButtonClicked(self, exercise, ind):
+        print("Recording - ", exercise)
+        if self.parent.classifyExercises is not None:
+            self.recordThread.exercise = exercise
+            self.recordThread.taskFinished.connect(functools.partial(self.recordFinished, exercise, ind),
+                                                   Qt.ConnectionType.SingleShotConnection)
+            self.recordThread.start()
+            self.recordReady[ind] = False
+            self.buttons[ind].setStyleSheet(CustomQStyles.recordButtonStyle)
+            self.images[ind].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise + ".png"))
+
+    def recordFinished(self, exercise, index):
+        print(index)
+        self.images[index].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise + "-success.png"))
+        self.buttons[index].setStyleSheet(CustomQStyles.buttonStyle)
+        self.recordReady[index] = True
 
     # Display list of subjects, or new subject
     def setSubjectPanel(self, TrainPanel):
@@ -223,3 +280,13 @@ class Ui_TrainPanel(object):
         self.subjectLayout.addWidget(self.listFiles)
 
         self.box1.setLayout(self.subjectLayout)
+
+    def deleteItemsOfLayout(self, layout):
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                widget = item.widget()
+                if widget is not None:
+                    widget.setParent(None)
+                else:
+                    self.deleteItemsOfLayout(item.layout())

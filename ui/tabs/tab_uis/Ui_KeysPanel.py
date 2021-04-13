@@ -21,10 +21,9 @@ class Ui_KeysPanel(object):
         self.exercises = []
 
         if KeysWidget.classifyExercises is not None:
-            for x, ind in zip(KeysWidget.classifyExercises.exercises,
-                              range(0, len(KeysWidget.classifyExercises.exercises))):
-                self.exercises.append(KeysWidget.classifyExercises.exercises[x])
-                self.createRow(exercise=KeysWidget.classifyExercises.exercises[x], index=ind)
+            for ind in range(0, len(KeysWidget.classifyExercises.exercises)):
+                self.exercises.append(KeysWidget.classifyExercises.exercises[ind])
+                self.createRow(exercise=KeysWidget.classifyExercises.exercises[ind], index=ind)
         self.actions = QHBoxLayout()
         self.supportedKeys = QPushButton('Supported keys')
         self.supportedKeys.setIcon(QIcon.fromTheme("dialog-information"))
@@ -34,7 +33,7 @@ class Ui_KeysPanel(object):
 
         self.actions.addWidget(self.supportedKeys)
         self.actions.addWidget(self.saveProfile)
-        self.mainLayout.addLayout(self.actions,self.mainLayout.rowCount(), 0)
+        self.mainLayout.addLayout(self.actions, self.mainLayout.rowCount(), 0)
 
     def createRow(self, exercise, index):
         item = QHBoxLayout()

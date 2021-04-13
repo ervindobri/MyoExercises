@@ -22,6 +22,23 @@ class trainThread(QThread):
         self.taskFinished.emit()
 
 
+class RecordThread(QThread):
+    taskFinished = QtCore.pyqtSignal()
+
+    def __init__(self,
+                 classify: ClassifyExercises = None,
+                 exercise: str = None
+                 ):
+        QThread.__init__(self)
+        self.classify = classify
+        self.exercise = exercise
+
+    def run(self):
+        # your logic here
+        self.classify.RecordExercise(self.exercise)
+        self.taskFinished.emit()
+
+
 class progressThread(QThread):
     progress_update = QtCore.pyqtSignal(int)  # or pyqtSignal(int)
 
