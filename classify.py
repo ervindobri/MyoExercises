@@ -1,4 +1,8 @@
+import json
 import threading
+from os import listdir
+from os.path import isfile, join
+
 import matplotlib
 import myo
 import numpy as np
@@ -19,7 +23,8 @@ import pickle
 from tensorflow_addons.callbacks import TQDMProgressBar
 
 from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data, \
-    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, change_sample_size, validation_samples
+    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, change_sample_size, validation_samples, \
+    PATIENTS_PATH
 from helpers.myo_helpers import Listener, MyoService, ForeverListener
 
 # matplotlib.use("TkAgg")
@@ -106,7 +111,7 @@ class ClassifyExercises:
 
         self.hub.stop()
 
-        result_array = self.calculateAllMeanData()
+        result_array = self.CalculateAllMeanData()
         self.SaveProcessedData(result_array)
 
     def UpdateExerciseList(self, itemsTextList):
@@ -127,27 +132,29 @@ class ClassifyExercises:
         hub = myo.Hub()
         exercise = self.exercises[0]
         index = 0
+        result = 0
         for ex in self.exercises:
             if ex.name == exercise_name:
                 exercise = ex
                 index = self.exercises.index(ex)
 
         print("Exercise name:", exercise.name, ", index: ", index)
-        while True:
-            try:
-                listener = Listener(number_of_samples)
-                hub.run(listener.on_event, 3000)
-                current_training_set = np.array((data_array[0]))
-                print(current_training_set)
-                data_array.clear()
-                break
-            except Exception as e:
-                print(e)
+        try:
+            listener = Listener(number_of_samples)
+            hub.run(listener.on_event, 3000)
+            current_training_set = np.array((data_array[0]))
+            print(current_training_set)
+            data_array.clear()
+            print(exercise.name, "data ready")
+            result_array = self.CalculateMeanData(current_training_set)
+            self.all_averages[index] = result_array
+            result = 1
+        except Exception as e:
+            print(e)
+            result = 0
 
-        print(exercise.name, "data ready")
         self.hub.stop()
-        result_array = self.CalculateMeanData(current_training_set)
-        self.all_averages[index] = result_array
+        return result
         # self.SaveProcessedData(result_array)
 
     # This method is responsible for training EMG data - requirements: loading back .txt data,
@@ -155,11 +162,12 @@ class ClassifyExercises:
         labels = []
 
         print("Loading data from disk!")
-        prepare_array = np.loadtxt(RESULT_PATH + DATA_PATH + self.subject + '-' + self.age + '.txt')
+        prepare_array = np.loadtxt(RESULT_PATH + DATA_PATH + self.subject + '-' + str(self.age) + '.txt')
 
         # This division is to make the iterator for making labels run 20 times in inner loop and 3 times in outer loop
         # running total 60 times for 3 foot gestures
-        samples = prepare_array.shape[0] / self.number_of_gestures
+        samples = 20
+        self.number_of_gestures = int(prepare_array.shape[0]/samples)
         print("Preprocess EMG data of ", self.subject, "with ", samples, " samples per", self.number_of_gestures,
               "exercise, training data with a nr. of ",
               self.training_batch_size, "batch size, for a total of ", self.epochs, "epochs.")
@@ -207,9 +215,10 @@ class ClassifyExercises:
 
         adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
                                                amsgrad=False)
-        model.compile(optimizer=adam_optimizer,
-                      loss='sparse_categorical_crossentropy',
-                      metrics=['accuracy'])
+        model.compile(
+            optimizer=adam_optimizer,
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy'])
 
         print("Fitting training data to the model...")
         tqdm_callback = TQDMProgressBar(
@@ -219,19 +228,19 @@ class ClassifyExercises:
         )
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
-                            batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback, CustomCallback()])
+                            batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback])
 
         instructions = "Training model successful!"
         print(instructions)
 
-        save_path = RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5'
+        save_path = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) +  '_model.h5'
         model.save(save_path)
         print("Saving model for later...")
 
         self.SaveModelHistory(history)
 
     def SaveModelHistory(self, history):
-        filepath = RESULT_PATH + MODEL_PATH + self.subject + '.history'
+        filepath = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '.history'
         with open(filepath, 'wb') as file_pi:
             pickle.dump(history.history, file_pi)
 
@@ -243,7 +252,7 @@ class ClassifyExercises:
 
         return current_average
 
-    def calculateAllMeanData(self):
+    def CalculateAllMeanData(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             # Calculate Absolutes of foot gesture data - every EXERCISE set -> tiptoe, toe crunches, rest. etc...
@@ -262,12 +271,29 @@ class ClassifyExercises:
             conc_array = np.concatenate(self.all_averages, axis=0)
             return conc_array
 
+    def DataAvailable(self):
+        if self.subject is not None:
+            files = [f for f in listdir(RESULT_PATH + DATA_PATH) if isfile(join(RESULT_PATH+DATA_PATH, f))]
+            if self.subject+'-'+str(self.age)+'.txt' in files:
+                print("Data available!")
+                return True
+        print("No data!")
+        return False
+
     def SaveProcessedData(self, array=None):
         try:
             print("Trying  to save data...")
             if array is None:
                 array = np.concatenate(self.all_averages, axis=0)
-
+            with open(PATIENTS_PATH + self.subject + '-' + str(self.age) + '.json', 'w') as f:
+                exercises = [x.code for x in self.exercises]
+                content = {
+                    "Name": self.subject,
+                    "Age": self.age,
+                    "Exercises": exercises
+                }
+                json.dump(content, f)
+                f.close()
             np.savetxt(RESULT_PATH + DATA_PATH + self.subject + '-' + str(self.age) + '.txt', array, fmt='%i')
             instructions = "Saving training data successful!"
             print(instructions)
@@ -281,12 +307,12 @@ class ClassifyExercises:
     # This function plots results for validation and training data for a certain subject
     def DisplayResults(self):
         try:
-            filepath = RESULT_PATH + MODEL_PATH + self.subject + '.history'
+            filepath = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '.history'
             print(filepath)
             history = pickle.load(open(filepath, "rb"))
             print("Model load successful")
-        except:
-            print("No such model exists! Please try again.")
+        except FileNotFoundError:
+            print("No such model! Please check name and/or age.")
             return
 
         f, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
@@ -326,7 +352,7 @@ class ClassifyExercises:
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
 
-        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5')
         hub = myo.Hub()
         average = 0.0
         counter = 100
@@ -378,7 +404,7 @@ class ClassifyExercises:
         import keyboard
 
         validation_averages = np.zeros((int(self.averages), 8))
-        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5')
         hub = myo.Hub()
         listener = ForeverListener(validation_samples)
 
@@ -414,7 +440,7 @@ class ClassifyExercises:
     def TestPredict(self, reps=50, exercise_index=0):
         import keyboard
         validation_averages = np.zeros((int(self.averages), 8))
-        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '_realistic_model.h5')
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) +  '_model.h5')
 
         average = 0.0
         correct_predictions = 0

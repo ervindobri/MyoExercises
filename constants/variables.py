@@ -40,6 +40,7 @@ PROC_NAME = "Myo Connect.exe"
 PROC_PATH = 'C:\\Program Files (x86)\\Thalmic Labs\\Myo Connect\\' + PROC_NAME
 
 RESULT_PATH = os.getcwd() + '\\data\\results\\'
+PATIENTS_PATH = os.getcwd() + '\\data\\patients\\'
 FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
 
 DATA_PATH = 'training_data\\'

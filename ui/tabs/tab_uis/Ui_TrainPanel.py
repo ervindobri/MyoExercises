@@ -1,4 +1,5 @@
 import functools
+import json
 import os
 from os import listdir
 from os.path import join, isfile
@@ -10,7 +11,10 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QSpinBox, QComboBo
     QCheckBox, QProgressBar, QListWidget, QGroupBox, QMessageBox, QSizePolicy, QListWidgetItem, QSlider, QWizard, \
     QWizardPage
 
+from constants.variables import PATIENTS_PATH
+from models.patient import Patient
 from ui.custom_slider import Slider
+from ui.custom_widgets.calibrate_wizard import CalibrateWizard
 from ui.custom_widgets.two_list_selection import TwoListSelection
 from ui.custom_styles import CustomQStyles
 from ui.thread_helpers.thread_helpers import RecordThread
@@ -40,13 +44,13 @@ class Ui_TrainPanel(object):
 
         self.subjectEdit = QLineEdit(TrainPanel)
         self.subjectEdit.setFixedHeight(30)
-        self.subjectEdit.setPlaceholderText("Jozsika")
+        self.subjectEdit.setText('Jozsika')
         self.subjectEdit.setStyleSheet(CustomQStyles.lineEditStyle)
 
         self.ageEdit = QLineEdit(TrainPanel)
         self.ageEdit.setFixedHeight(30)
-        self.ageEdit.setPlaceholderText("5")
         self.ageEdit.setValidator(QIntValidator())
+        self.ageEdit.setText('5')
         self.ageEdit.setStyleSheet(CustomQStyles.lineEditStyle)
 
         self.subjectButton = QPushButton('New', parent=TrainPanel)
@@ -77,23 +81,16 @@ class Ui_TrainPanel(object):
         self.form_layout2 = QFormLayout(TrainPanel)
         print("init")
 
-        self.box1 = QGroupBox(title="Subject", parent=TrainPanel)
+        self.box1 = QGroupBox(title="Patient", parent=TrainPanel)
         self.box2 = QGroupBox(parent=TrainPanel)
-        self.wizard = QWizard(parent=TrainPanel)
+        self.wizard = CalibrateWizard(parent=TrainPanel)
 
         self.setSubjectPanel(TrainPanel)  # right panel
         self.trainPanel(TrainPanel)  # left panel
-        self.createWizard(TrainPanel)
-        self.buttons = []
-        self.images = []
-        self.labels = []
-        self.exerciseLayouts = []
-        self.recordReady = []
 
-        self.mainLayout.addWidget(self.box1, stretch=1)
-        self.mainLayout.addWidget(self.box2, stretch=2)
+        self.mainLayout.addWidget(self.box1, stretch=2)
+        self.mainLayout.addWidget(self.box2, stretch=3)
 
-        self.recordThread = RecordThread(self.parent.classifyExercises)
         # self.retranslateUi(TrainPanel)
 
     # Display progress bar, checkbox - to record new gestures or not, start train
@@ -172,94 +169,6 @@ class Ui_TrainPanel(object):
         if returnValue == QMessageBox.StandardButtons.Ok:
             print('OK clicked')
 
-    def createWizard(self, TrainPanel):
-        self.wizard.setWizardStyle(QWizard.WizardStyle.ModernStyle)
-        # CREATE PAGE 1, LINE EDIT, TITLES
-        buttons_layout = [QWizard.WizardButton.NextButton, QWizard.WizardButton.FinishButton]
-        page1 = QWizardPage()
-        page1.setTitle('Select the exercises you wish to do later')
-        page1.setSubTitle('Below are listed all the available and selected exercises by you.')
-        self.listSelection = TwoListSelection()
-        # listSelection.addAvailableItems(["item-{}".format(i) for i in range(5)])
-        hLayout1 = QHBoxLayout(page1)
-        hLayout1.addWidget(self.listSelection)
-
-        # CREATE PAGE 2, LABEL, TITLES
-        self.page2 = QWizardPage()
-        self.page2.setFinalPage(True)
-        self.wizard.setButtonLayout(buttons_layout)
-        self.page2.setTitle('Calibrate every exercise')
-        self.page2.setSubTitle('Do every exercise once, record after pressing button.')
-        self.hLayout2 = QHBoxLayout(self.page2)
-        itemsTextList = [str(self.listSelection.mInput.item(i).text()) for i in
-                         range(self.listSelection.mInput.count())]
-        print("items:", itemsTextList)
-
-        nxt = self.wizard.button(QWizard.WizardButton.NextButton)
-        nxt.clicked.connect(self.onWizardNextButton)
-        self.wizard.button(QWizard.WizardButton.FinishButton).clicked.connect(self.onWizardFinishButton)
-        self.wizard.addPage(page1)
-        self.wizard.addPage(self.page2)
-
-    def onWizardFinishButton(self):
-        if all(x == True for x in self.recordReady):
-            print("All recorded!")
-            if self.parent.classifyExercises is not None:
-                self.parent.classifyExercises.SaveProcessedData()
-        else:
-            print("Not all recorded!")
-
-    # Send list to next page
-    def onWizardNextButton(self):
-
-        itemsTextList = [str(self.listSelection.mInput.item(i).text())
-                         for i in range(self.listSelection.mInput.count())]
-        # Update list
-        if self.parent.classifyExercises is not None:
-            self.parent.classifyExercises.UpdateExerciseList(itemsTextList)
-
-        # Set elements on UI
-        self.wizard.setMinimumWidth(len(itemsTextList) * 200)
-        self.deleteItemsOfLayout(self.hLayout2)
-        self.images.clear()
-        self.labels.clear()
-        self.buttons.clear()
-        for x, i in zip(itemsTextList, range(len(itemsTextList))):
-            self.exerciseLayouts.append(QVBoxLayout())
-            self.buttons.append(QPushButton('Record'))
-            self.recordReady.append(False)
-            image = QLabel()
-            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/" + itemsTextList[i] + ".png"))
-            self.labels.append(QLabel(itemsTextList[i]))
-            self.images.append(image)
-            self.buttons[i].setFixedSize(100, 35)
-            self.buttons[i].clicked.connect(functools.partial(self.onRecordExerciseButtonClicked, x, i))
-            self.buttons[i].setStyleSheet(CustomQStyles.buttonStyle)
-            self.exerciseLayouts[i].addWidget(self.labels[i])
-            self.exerciseLayouts[i].addWidget(self.images[i])
-            self.exerciseLayouts[i].addWidget(self.buttons[i])
-            self.exerciseLayouts[i].setAlignment(self.labels[i], Qt.Alignment.AlignCenter)
-            self.exerciseLayouts[i].setAlignment(self.images[i], Qt.Alignment.AlignCenter)
-            self.exerciseLayouts[i].setAlignment(self.buttons[i], Qt.Alignment.AlignCenter)
-            self.hLayout2.addLayout(self.exerciseLayouts[i])
-
-    def onRecordExerciseButtonClicked(self, exercise, ind):
-        print("Recording - ", exercise)
-        if self.parent.classifyExercises is not None:
-            self.recordThread.exercise = exercise
-            self.recordThread.taskFinished.connect(functools.partial(self.recordFinished, exercise, ind),
-                                                   Qt.ConnectionType.SingleShotConnection)
-            self.recordThread.start()
-            self.recordReady[ind] = False
-            self.buttons[ind].setStyleSheet(CustomQStyles.recordButtonStyle)
-            self.images[ind].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise + ".png"))
-
-    def recordFinished(self, exercise, index):
-        print(index)
-        self.images[index].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise + "-success.png"))
-        self.buttons[index].setStyleSheet(CustomQStyles.buttonStyle)
-        self.recordReady[index] = True
-
     # Display list of subjects, or new subject
     def setSubjectPanel(self, TrainPanel):
         self.form_layout.addRow('Name', self.subjectEdit)
@@ -269,17 +178,34 @@ class Ui_TrainPanel(object):
         self.label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.label.setAlignment(QtCore.Qt.Alignment.AlignCenter)
 
-        files = [f for f in listdir(FULL_MODEL_PATH) if isfile(join(FULL_MODEL_PATH, f))]
-        for x, ind in zip(files, range(0, len(files))):
-            item = QListWidgetItem(x.split('.')[0])
-            item.setTextAlignment(Qt.Alignment.AlignHCenter)
-            self.listFiles.addItem(item)
+        self.loadPatientList()
+
+        self.listFiles.setStyleSheet(CustomQStyles.listStyle)
+        self.listFiles.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         self.subjectLayout.addLayout(self.form_layout)
         self.subjectLayout.addWidget(self.label)
         self.subjectLayout.addWidget(self.listFiles)
 
         self.box1.setLayout(self.subjectLayout)
+
+    def loadPatientList(self):
+        self.listFiles.clear()
+        self.parent.patients.clear()
+        files = [f for f in listdir(PATIENTS_PATH) if isfile(join(PATIENTS_PATH, f))]
+        for x, ind in zip(files, range(0, len(files))):
+            item = QListWidgetItem(x.split('.')[0])
+            item.setTextAlignment(Qt.Alignment.AlignHCenter)
+            self.listFiles.addItem(item)
+            with open(PATIENTS_PATH + x, 'r') as f:
+                person_dict = json.load(f)
+                patient = Patient(person_dict['Name'],
+                                  person_dict['Age'],
+                                  person_dict['Exercises']
+                                  )
+                self.parent.patients.append(patient)
+
+        print(self.parent.patients)
 
     def deleteItemsOfLayout(self, layout):
         if layout is not None:

@@ -32,11 +32,13 @@ class RecordThread(QThread):
         QThread.__init__(self)
         self.classify = classify
         self.exercise = exercise
+        self.result = None
 
     def run(self):
         # your logic here
-        self.classify.RecordExercise(self.exercise)
+        result = self.classify.RecordExercise(self.exercise)
         self.taskFinished.emit()
+        self.result = result
 
 
 class progressThread(QThread):

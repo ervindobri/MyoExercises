@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QMessageBox, QWidget, QHBoxLayout
 from PyQt6 import QtCore
 
 from constants.variables import PREDEFINED_EXERCISES
+from models.patient import Patient
 from ui.custom_widgets.session_dialog import SessionDialog
 from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
 from ui.custom_widgets.dialog import DateDialog
@@ -23,6 +24,8 @@ class TrainWidget(QWidget):
             self.progress_thread = progressThread(self.classifyExercises)
             self.trainThread = trainThread(self.classifyExercises)
 
+        self.patients = []
+        self.selectedPatient = Patient("","",[])
         self.ui.setupUi(self)
         self.connections()
 
@@ -39,7 +42,7 @@ class TrainWidget(QWidget):
         self.ui.epochSlider.valueChanged.connect(self.updateEpochValue)
 
     def onSessionClicked(self):
-        dialog = SessionDialog()
+        dialog = SessionDialog(self, self.selectedPatient)
         dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.exec()
 
@@ -47,11 +50,11 @@ class TrainWidget(QWidget):
         if self.classifyExercises is not None:
             if self.classifyExercises.subject is not None:
                 # self.ui.createWizard(self)
-                self.ui.wizard.setWindowTitle("Create new ML Model for " + self.classifyExercises.subject)
+                self.ui.wizard.setWindowTitle("Calibrating " + self.classifyExercises.subject)
                 self.ui.recordReady = []
-                self.ui.listSelection.mInput.clear()
-                self.ui.listSelection.mOuput.clear()
-                self.ui.listSelection.mOuput.addItems([e.name for e in PREDEFINED_EXERCISES])
+                self.ui.wizard.listSelection.mInput.clear()
+                self.ui.wizard.listSelection.mOuput.clear()
+                self.ui.wizard.listSelection.mOuput.addItems([e.name for e in PREDEFINED_EXERCISES])
                 self.ui.wizard.restart()
                 self.ui.wizard.show()
 
@@ -60,13 +63,6 @@ class TrainWidget(QWidget):
                                    "You must either select or enter a subject name.",
                                    QMessageBox.StandardButtons.Ok)
                 print("Subject is none!")
-
-    @staticmethod
-    def onRecordChecked(value):
-        print(value)
-        # TODO: if true open RECORD exercises dialog
-        if value:
-            date, time, ok = DateDialog.getDateTime()
 
     def updateEpochValue(self, num):
         print(num)
@@ -83,23 +79,25 @@ class TrainWidget(QWidget):
         self.classifyExercises.DisplayResults()
 
     def onTrainClicked(self):
-        self.infoLabel.setText("Training in progress.")
-        if self.ui.resultButton.isEnabled:
-            self.ui.resultButton.setEnabled(False)
-
-        if self.classifyExercises is not None:
-            if self.classifyExercises.subject is not None:
+        if self.classifyExercises.subject is not None:
+            if self.classifyExercises.DataAvailable():
+                if self.ui.resultButton.isEnabled:
+                    self.ui.resultButton.setEnabled(False)
                 self.infoLabel.setText("Training in progress.")
 
                 self.trainThread.start()
                 self.progress_thread.start()
                 self.progress_thread.progress_update.connect(self.updateProgressBar)
-
             else:
                 self.ui.showDialog("Message",
-                                   "You must either select or enter a subject name.",
+                                   "Calibrate for patient to obtain data.",
                                    QMessageBox.StandardButtons.Ok)
-                print("Subject is none!")
+
+        else:
+            self.ui.showDialog("Message",
+                               "You must either select or enter a subject name.",
+                               QMessageBox.StandardButtons.Ok)
+            print("Subject is none!")
 
     def updateProgressBar(self, maxVal):
         self.ui.progress.setValue(0) if maxVal % 2 == 0 else self.ui.progress.setValue(100)
@@ -134,10 +132,10 @@ class TrainWidget(QWidget):
     # TODO: train model
     def listClicked(self, index):
         item = self.ui.listFiles.currentItem()
-        print(item.text())
         if self.classifyExercises is not None:
             name, age = item.text().split('-')
             self.classifyExercises.subject = name
             self.classifyExercises.age = age
+            self.selectedPatient = next(x for x in self.patients if x.name == name and x.age == age)
+            print("Selected patient:", self.selectedPatient.name)
             self.infoLabel.setText("Subject name set to " + name + ", age " + age)
-

@@ -1,9 +1,22 @@
 class CustomQStyles:
-
-
     blue = "#00bbde"
     lightBlue = "#a0f1ff"
 
+    listStyle = """
+        QListView::item
+        {
+            background-color: white;
+            margin: 3px;
+        }
+        QListView::item::selected
+        {
+            background-color: white;
+            border: 1px solid #00bbde;
+            border-radius: 7px;
+            margin: 3px;
+            color: #00bbde;
+        }
+    """
     lineEditStyle = """
         QLineEdit
         {
