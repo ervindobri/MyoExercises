@@ -22,3 +22,11 @@ It was designed by a Canadian company "Thalmic Labs". This armband has 8 sensors
 ![flowchart](https://www.researchgate.net/profile/Diego_Faria2/publication/328676359/figure/fig4/AS:688256534446082@1541104553507/Myo-armband-sensor-by-Thalmic-labs-The-bottom-images-present-the-possibilities-for.png?raw=true)
 (Source: https://www.researchgate.net/figure/Myo-armband-sensor-by-Thalmic-labs-The-bottom-images-present-the-possibilities-for_fig4_328676359 )
 
+
+
+Special thanks to Niklas Rosenstein for his Myo-Python API
+(https://github.com/NiklasRosenstein/Myo-python)
+
+And to Shayan Ali Bhatti for the inspiration for the gesture recognition algorithm using ANN.
+Check out his work at https://github.com/shayanalibhatti/Finger-Movement-Classification-via-Machine-Learning-using-EMG-Armband-for-3D-Printed-Robotic-Hand/
+
