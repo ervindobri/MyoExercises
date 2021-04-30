@@ -17,6 +17,12 @@ class InputController:
         self.keyboard = Controller()
         self.last_key = None
 
+    def simulateKeyWithInstantRelease(self, exercise):
+        if exercise.assigned_key[1] is not None:
+            self.keyboard.press(exercise.assigned_key[1])
+            # TODO: wait a bit
+            self.keyboard.release(exercise.assigned_key[1])
+
     def simulateKey(self, exercise):
         if exercise.assigned_key[1] is not None:
             if self.last_key is not None and self.last_key != exercise.assigned_key[1]:
@@ -24,7 +30,6 @@ class InputController:
             self.keyboard.press(exercise.assigned_key[1])
             self.last_key = exercise.assigned_key[1]
             # print(exercise.assigned_key[1], " - Key pressed successfully!")
-
 
     def startTest(self):
         self.keyboard.press(Key.space)

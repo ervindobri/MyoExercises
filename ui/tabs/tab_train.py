@@ -1,12 +1,12 @@
-from PyQt6.QtWidgets import QMessageBox, QWidget, QHBoxLayout
+from PyQt6.QtWidgets import QMessageBox, QWidget
 from PyQt6 import QtCore
 
 from constants.variables import PREDEFINED_EXERCISES
 from models.patient import Patient
-from ui.custom_widgets.session_dialog import SessionDialog
+from ui.dialogs.session_dialog import SessionDialog
+from ui.custom_widgets.show_message import CustomMessage
+from ui.dialogs.add_patient import CreatePatientDialog
 from ui.tabs.tab_uis.Ui_TrainPanel import Ui_TrainPanel
-from ui.custom_widgets.dialog import DateDialog
-from ui.thread_helpers.thread_helpers import progressThread, trainThread
 
 
 class TrainWidget(QWidget):
@@ -14,35 +14,31 @@ class TrainWidget(QWidget):
         super(TrainWidget, self).__init__(parent)
         self.ui = Ui_TrainPanel()
         self.subject = ""
-
         self.classifyExercises = None
-        self.progress_thread = progressThread()
-        self.trainThread = trainThread()
         if parent is not None:
             self.classifyExercises = parent.classifyExercises
             self.infoLabel = parent.infoLabel
-            self.progress_thread = progressThread(self.classifyExercises)
-            self.trainThread = trainThread(self.classifyExercises)
 
         self.patients = []
-        self.selectedPatient = Patient("","",[])
+        self.selectedPatient = Patient("", "", {})
         self.ui.setupUi(self)
         self.connections()
 
     def connections(self):
-        self.trainThread.taskFinished.connect(self.onFinished)
-        self.ui.batchSizeMenu.currentIndexChanged.connect(self.onBatchSizeSelected)
-        self.ui.subjectButton.clicked.connect(self.onSubjectSelected)
+        self.ui.addPatient.clicked.connect(self.addPatientDialog)  # to train panel
         self.ui.listFiles.clicked.connect(self.listClicked)
-        # self.ui.checkRecording.clicked.connect(self.onRecordChecked)
         self.ui.calibrateButton.clicked.connect(self.onCalibrateClicked)
         self.ui.sessionButton.clicked.connect(self.onSessionClicked)
-        self.ui.resultButton.clicked.connect(self.onResultClicked)
-        self.ui.trainButton.clicked.connect(self.onTrainClicked)
-        self.ui.epochSlider.valueChanged.connect(self.updateEpochValue)
+
+    def addPatientDialog(self):
+        dialog = CreatePatientDialog(
+            self.classifyExercises,
+            self.selectedPatient,
+            self.infoLabel)
+        dialog.exec()
 
     def onSessionClicked(self):
-        dialog = SessionDialog(self, self.selectedPatient)
+        dialog = SessionDialog(self, self.selectedPatient, self.classifyExercises)
         dialog.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.exec()
 
@@ -59,77 +55,16 @@ class TrainWidget(QWidget):
                 self.ui.wizard.show()
 
             else:
-                self.ui.showDialog("Message",
-                                   "You must either select or enter a subject name.",
-                                   QMessageBox.StandardButtons.Ok)
+                CustomMessage.showDialog("Message",
+                                         "You must either select or enter a subject name.",
+                                         QMessageBox.StandardButtons.Ok)
                 print("Subject is none!")
-
-    def updateEpochValue(self, num):
-        print(num)
-        epochs = num * 50
-        self.ui.epochValue.setNum(epochs)
-        self.classifyExercises.epochs = epochs
-
-    def onBatchSizeSelected(self, ind):
-        self.classifyExercises.training_batch_size = int(self.ui.batchSizeMenu.currentText())
-        self.infoLabel.setText("Batch size set to " + self.ui.batchSizeMenu.currentText() + ".")
-
-    def onResultClicked(self):
-        print("open image")
-        self.classifyExercises.DisplayResults()
-
-    def onTrainClicked(self):
-        if self.classifyExercises.subject is not None:
-            if self.classifyExercises.DataAvailable():
-                if self.ui.resultButton.isEnabled:
-                    self.ui.resultButton.setEnabled(False)
-                self.infoLabel.setText("Training in progress.")
-
-                self.trainThread.start()
-                self.progress_thread.start()
-                self.progress_thread.progress_update.connect(self.updateProgressBar)
-            else:
-                self.ui.showDialog("Message",
-                                   "Calibrate for patient to obtain data.",
-                                   QMessageBox.StandardButtons.Ok)
-
-        else:
-            self.ui.showDialog("Message",
-                               "You must either select or enter a subject name.",
-                               QMessageBox.StandardButtons.Ok)
-            print("Subject is none!")
-
-    def updateProgressBar(self, maxVal):
-        self.ui.progress.setValue(0) if maxVal % 2 == 0 else self.ui.progress.setValue(100)
-        if maxVal == 0:
-            self.ui.progress.setValue(100)
-
-    def onFinished(self):
-        # Stop the progress
-        self.progress_thread.disconnect()
-        self.progress_thread.exit()
-        self.ui.progress.setValue(100)
-        self.ui.showDialog("Message",
-                           "Training model finished!",
-                           QMessageBox.StandardButtons.Ok)
-        self.ui.resultButton.setEnabled(True)
-        self.infoLabel.setText("Training model successful.")
 
     @QtCore.pyqtSlot(int)
     def on_pathChanged(self, num):
         num = self.classifyExercises.epochs  # append path
         print(num)
 
-    def onSubjectSelected(self):
-        if self.classifyExercises is not None \
-                and "" != self.ui.subjectEdit.text() \
-                and "" != self.ui.ageEdit.text():
-            self.subject = self.ui.subjectEdit.text()
-            self.classifyExercises.subject = self.subject
-            self.classifyExercises.age = self.ui.ageEdit.text()
-            self.infoLabel.setText("Subject name set to " + self.subject + ", age " + self.classifyExercises.age)
-
-    # TODO: train model
     def listClicked(self, index):
         item = self.ui.listFiles.currentItem()
         if self.classifyExercises is not None:

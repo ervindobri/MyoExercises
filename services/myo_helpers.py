@@ -38,6 +38,29 @@ class Listener(myo.DeviceListener):
                 return False
 
 
+class PredictListener(myo.DeviceListener):
+    def __init__(self, n):
+        self.samples = n
+        self.acceleration = None
+        self.lock = Lock()
+
+    def get_emg_data(self):
+        return streamed_data
+
+    def on_connected(self, event):
+        print("--- Streaming EMG ---")
+        event.device.stream_emg(True)
+
+    def on_orientation(self, event):
+        self.acceleration = event.acceleration
+
+    def on_emg(self, event):
+        with self.lock:
+            streamed_data.append(event.emg)
+            if len(streamed_data) >= self.samples:
+                return False
+
+
 class ForeverListener(myo.DeviceListener):
     def __init__(self, n):
         self.n = n

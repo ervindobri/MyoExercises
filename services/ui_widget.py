@@ -1,19 +1,15 @@
-import sys
-
 # 1. Import `QApplication` and all the required widgets
 import time
 
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QPushButton, QMainWindow, \
-    QStatusBar, QStyle
-from PyQt6.QtWidgets import QLabel
+from PyQt6.QtWidgets import QLabel, QMainWindow, QStatusBar, QPushButton, QHBoxLayout, QStyle
 from PyQt6.QtWidgets import QWidget
 
-from classify import ClassifyExercises
-from constants.variables import number_of_samples, PREDEFINED_EXERCISES
-from helpers.myo_helpers import MyoService
-from ui.menu_bar.config_dialog import ConfigDialog
+from services.classify import ClassifyExercises
+from constants.variables import PREDEFINED_EXERCISES
+from services.myo_helpers import MyoService
+from ui.dialogs.config_dialog import ConfigDialog
 from ui.table_window import MainTabWidget
 
 
@@ -35,7 +31,6 @@ class HIMOApp(QMainWindow):
 
         if MyoService.check_if_process_running():
             print("Myo Connect is running!")
-            time.sleep(1)
             self.classifyExercises = ClassifyExercises(
                 # subject="Ervin",
                 # nr_of_samples=number_of_samples,
@@ -51,6 +46,7 @@ class HIMOApp(QMainWindow):
         self.table_widget = MainTabWidget(self)
 
         self.initUI()
+        self.setStyleSheet("background-color: white;")
 
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -88,7 +84,6 @@ class HIMOApp(QMainWindow):
         widget.setLayout(container)
         self.statusBar.addWidget(widget)
         self.setStatusBar(self.statusBar)
-
         self.show()
 
     def restartProcess(self):
@@ -102,12 +97,3 @@ class HIMOApp(QMainWindow):
         print("config..")
         widget = ConfigDialog(self)
         res = widget.exec()
-
-
-if __name__ == '__main__':
-    if not MyoService.check_if_process_running():
-        MyoService.start_process()
-
-    app = QApplication(sys.argv)
-    ex = HIMOApp()
-    currentExitCode = app.exec()

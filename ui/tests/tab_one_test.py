@@ -5,7 +5,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 
-from classify import ClassifyExercises
+from services.classify import ClassifyExercises
 from constants.variables import number_of_samples, PREDEFINED_EXERCISES
 from ui.tabs.tab_train import TrainWidget
 

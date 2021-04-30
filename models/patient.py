@@ -3,7 +3,7 @@ class Patient:
         self.name = name
         self.age = age
         if exercises is None:
-            self.exercises = []
+            self.exercises = {}
         self.exercises = exercises
 
     def __str__(self):

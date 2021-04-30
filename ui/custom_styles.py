@@ -1,6 +1,60 @@
 class CustomQStyles:
+    timerStyle = """
+        QTimeEdit
+        {
+            background-color: #20c1dc;
+            border-radius: 7px;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+        QTimeEdit::down-button{
+            width: 0;
+            display: none;
+        }
+        QTimeEdit::up-button{
+            width: 0;
+            display: none;
+        }
+        
+    """
     blue = "#00bbde"
     lightBlue = "#a0f1ff"
+
+    comboStyle = """
+            QWidget
+            {
+                background-color: white;
+                border: 1px solid #20c1dc;
+                border-radius: 7px;
+                font-size: 12px;
+            }
+        """
+
+    tabStyle = """
+            QTabWidget {background-color: white; border: none;}
+            QTabWidget::pane {
+             border: none;
+                background: white;
+                border-top: 1px solid #bebebe;
+              }
+            QTabBar {background-color: white;}
+            QTabBar::tab:selected
+            {
+                color: #454545;
+                background-color: white;
+                font-weight: bold;    
+                border-bottom: 4px solid #20c1dc;
+            }
+            QTabBar::tab
+            {
+                color: #bebebe;
+                background-color: white;
+                font-size: 13px;
+                width: 50px;   
+                text-align: left; 
+            }
+        """
 
     listStyle = """
         QListView::item

@@ -5,10 +5,10 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QLabel, QHBoxLayout, QPushButton, \
     QGridLayout
-from ui.custom_widgets.change_key_dialog import ChangeKeyDialog
+from ui.dialogs.change_key_dialog import ChangeKeyDialog
 
 # FULL_MODEL_PATH = os.getcwd() + '/data/results/training_data'
-from ui.custom_widgets.supported_keys_dialog import AllKeysDialog
+from ui.dialogs.supported_keys_dialog import AllKeysDialog
 
 FULL_MODEL_PATH = '/data/results/training_data'
 

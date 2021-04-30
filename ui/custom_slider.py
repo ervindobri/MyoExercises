@@ -7,7 +7,7 @@ class Slider(QSlider):
     maximumChanged = QtCore.pyqtSignal(int)
     epochValue = QtCore.pyqtSignal(int)
 
-    def __init__(self, orientation: QtCore.Qt.Orientations, parent: QWidget):
+    def __init__(self, orientation: QtCore.Qt.Orientations, parent=None):
         super().__init__(orientation=orientation, parent=parent)
         self._min = 0
         self._max = 99

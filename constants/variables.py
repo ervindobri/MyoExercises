@@ -42,11 +42,13 @@ PROC_PATH = 'C:\\Program Files (x86)\\Thalmic Labs\\Myo Connect\\' + PROC_NAME
 RESULT_PATH = os.getcwd() + '\\data\\results\\'
 PATIENTS_PATH = os.getcwd() + '\\data\\patients\\'
 FIGURES_PATH = os.getcwd() + '\\data\\figures\\'
-
+FULL_MODEL_PATH = os.getcwd() + '\\data\\results\\trained_model\\'
 DATA_PATH = 'training_data\\'
 MODEL_PATH = 'trained_model\\'
 MEASURED_PATH = 'measurements\\'
 MAPPED_KEYS_PATH = os.getcwd() + '\\data\\results\\mapped_keys\\'
+RESOURCES_PATH = os.getcwd() + '\\resources\\'
+IMAGES_PATH = RESOURCES_PATH + 'images\\'
 KEYS = {
     "UP": Key.up,
     "DOWN": Key.down,
@@ -73,6 +75,7 @@ SUPPORTED_KEYS = {
 #     TOES_UP = 3
 #     REST = 3
 
+PREDEFINED_REPS = ['5', '10', '15']
 PREDEFINED_EXERCISES = [
     Exercise(name="Tip Toe", code="TT", instruction="Stand on your toes!", assigned_key=("UP", KEYS["UP"])),
     Exercise(name="Toe Crunches", code="TC", instruction="Crunch your toes like a fist!",

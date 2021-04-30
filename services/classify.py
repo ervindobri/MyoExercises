@@ -3,7 +3,6 @@ import threading
 from os import listdir
 from os.path import isfile, join
 
-import matplotlib
 import myo
 import numpy as np
 from tensorflow.keras.activations import softmax, relu
@@ -11,7 +10,6 @@ from tensorflow import keras
 from keras import regularizers
 from keras.models import load_model
 import matplotlib.pyplot as plt
-from tensorflow.python.keras.saving.save import save_model
 # from tensorflow_addons.callbacks.tqdm_progress_bar import TQDMProgressBar
 
 # New Imports
@@ -22,13 +20,13 @@ import pickle
 
 from tensorflow_addons.callbacks import TQDMProgressBar
 
-from constants.variables import data_array, number_of_samples, DATA_PATH, MODEL_PATH, streamed_data, \
-    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, change_sample_size, validation_samples, \
-    PATIENTS_PATH
-from helpers.myo_helpers import Listener, MyoService, ForeverListener
+from constants.variables import data_array, DATA_PATH, MODEL_PATH, streamed_data, \
+    PREDEFINED_EXERCISES, RESULT_PATH, FIGURES_PATH, MEASURED_PATH, validation_samples, \
+    PATIENTS_PATH, number_of_samples, FULL_MODEL_PATH
+from models.patient import Patient
+from services.firestore import FirestoreDatabase
+from services.myo_helpers import Listener, MyoService, ForeverListener, PredictListener
 
-# matplotlib.use("TkAgg")
-from services.custom_callback import CustomCallback
 from services.input import InputController
 
 # matplotlib.use('Qt5Agg')
@@ -45,6 +43,7 @@ class ClassifyExercises:
                  training_batch_size: int = 32,
                  input_controller: InputController = None, ):
 
+        self.firestore = FirestoreDatabase()
         self.subject = subject
         self.age = age
 
@@ -61,8 +60,11 @@ class ClassifyExercises:
         self.epochs = epochs
         self.training_batch_size = training_batch_size
 
+        ''' batch_size '''
         self.div = batch_size  # every 50 batch ( 1000/50 -> 20 data )
+
         self.averages = int(number_of_samples / batch_size)
+        self.validation_averages = int(validation_samples / (batch_size / 10))
         self.all_training_set = {}
         self.all_averages = []
 
@@ -167,7 +169,7 @@ class ClassifyExercises:
         # This division is to make the iterator for making labels run 20 times in inner loop and 3 times in outer loop
         # running total 60 times for 3 foot gestures
         samples = 20
-        self.number_of_gestures = int(prepare_array.shape[0]/samples)
+        self.number_of_gestures = int(prepare_array.shape[0] / samples)
         print("Preprocess EMG data of ", self.subject, "with ", samples, " samples per", self.number_of_gestures,
               "exercise, training data with a nr. of ",
               self.training_batch_size, "batch size, for a total of ", self.epochs, "epochs.")
@@ -233,7 +235,7 @@ class ClassifyExercises:
         instructions = "Training model successful!"
         print(instructions)
 
-        save_path = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) +  '_model.h5'
+        save_path = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5'
         model.save(save_path)
         print("Saving model for later...")
 
@@ -273,8 +275,8 @@ class ClassifyExercises:
 
     def DataAvailable(self):
         if self.subject is not None:
-            files = [f for f in listdir(RESULT_PATH + DATA_PATH) if isfile(join(RESULT_PATH+DATA_PATH, f))]
-            if self.subject+'-'+str(self.age)+'.txt' in files:
+            files = [f for f in listdir(RESULT_PATH + DATA_PATH) if isfile(join(RESULT_PATH + DATA_PATH, f))]
+            if self.subject + '-' + str(self.age) + '.txt' in files:
                 print("Data available!")
                 return True
         print("No data!")
@@ -303,6 +305,15 @@ class ClassifyExercises:
             print(e)
             instructions = "Saving training data failed!"
             print(instructions)
+
+    def SavePatientData(self):
+        exercises = dict((ex.code, ex.assigned_key[0]) for ex in self.exercises)
+        patient = Patient(
+            self.subject,
+            self.age,
+            exercises
+        )
+        self.firestore.set_patient_data(patient)
 
     # This function plots results for validation and training data for a certain subject
     def DisplayResults(self):
@@ -348,7 +359,6 @@ class ClassifyExercises:
         print(save_file + " :figure saved successfully!")
 
     def PredictGestures(self):
-        global number_of_samples
         # Initializing array for verification_averages
         validation_averages = np.zeros((int(self.averages), 8))
 
@@ -357,13 +367,13 @@ class ClassifyExercises:
         average = 0.0
         counter = 100
 
-        print("Predicting gestures with ", number_of_samples, "nr. of samples.")
+        print("Predicting gestures with ", validation_samples, "nr. of samples.")
         while counter > 0:
             start_time = dt.datetime.now()
             # region PREDICT
             try:
                 # print("Show a foot gesture and press ENTER to get its classification!")
-                listener = Listener(number_of_samples)
+                listener = Listener(validation_samples)
                 hub.run(listener.on_event, 1000)  # 1000 * 20 = 20000 for enough samples
                 # Here we send the received number of samples making them a list of 1000 rows 8 columns
                 self.validation_set = np.array((data_array[0]))
@@ -380,7 +390,7 @@ class ClassifyExercises:
             # print(self.validation_set.shape)
 
             # We add one because iterator below starts from 1
-            batches = int(number_of_samples / self.div) + 1
+            batches = int(validation_samples / self.div) + 1
             for i in range(1, batches):
                 validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :], axis=0)
 
@@ -400,47 +410,42 @@ class ClassifyExercises:
         print(average)
         # pause
 
-    def PredictAndPlay(self):
-        import keyboard
+    def LoadModel(self):
+        self.model = load_model(FULL_MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5')
 
-        validation_averages = np.zeros((int(self.averages), 8))
-        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5')
-        hub = myo.Hub()
-        listener = ForeverListener(validation_samples)
+    def calculate_validated_data(self, current_data):
+        validation_averages = np.zeros((int(self.validation_averages), 8))
+        self.validation_set = np.array(current_data)
+        self.validation_set = np.absolute(self.validation_set)
+        # We add one because iterator below starts from 1
+        batches = int(validation_samples / self.div) + 1  # 50/25 => 2+1 = 3
+        for i in range(1, batches):
+            validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
+                                                    axis=0)
 
-        thread = threading.Thread(target=lambda: hub.run_forever(listener.on_event, 300))
-        thread.start()
+        return validation_averages
 
-        while 1:
-            streamed_data.clear()
-            if keyboard.is_pressed("s"):
-                break
+    def Predict(self):
+        listener = PredictListener(validation_samples)
+        self.hub.run(listener.on_event, 500)
+        while len(streamed_data) < validation_samples:
+            pass
 
-            while len(streamed_data) < validation_samples:
-                pass
+        current_data = streamed_data[-validation_samples:]  # get last nr_of_samples elements from list
+        validation_data = self.calculate_validated_data(current_data)
+        predictions = self.model.predict(validation_data, batch_size=self.training_batch_size)
+        predicted_value = np.argmax(predictions[0])
+        streamed_data.clear()
+        return predicted_value, self.exercises[predicted_value].name
 
-            current_data = streamed_data[-validation_samples:]  # get last nr_of_samples elements from list
-            self.validation_set = np.array(current_data)
-            self.validation_set = np.absolute(self.validation_set)
-
-            # We add one because iterator below starts from 1
-            batches = int(validation_samples / self.div) + 1
-            for i in range(1, batches):
-                validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
-                                                        axis=0)
-
-            validation_data = validation_averages
-            predictions = model.predict(validation_data, batch_size=validation_data.shape[1])
-            predicted_value = np.argmax(predictions[0])
-            self.input_controller.simulateKey(list(self.exercises.values())[predicted_value])
-            print("Predicted exercise:", list(self.exercises.values())[predicted_value].name)
-        hub.stop()
-        thread.join()
+    def PressKey(self, predicted_value):
+        self.input_controller.simulateKeyWithInstantRelease(self.exercises[predicted_value])
+        print("Pressed key:", self.exercises[predicted_value].name)
 
     def TestPredict(self, reps=50, exercise_index=0):
         import keyboard
         validation_averages = np.zeros((int(self.averages), 8))
-        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) +  '_model.h5')
+        model = load_model(RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5')
 
         average = 0.0
         correct_predictions = 0
@@ -530,34 +535,3 @@ class ClassifyExercises:
                 "%Y-%m-%d-%H+%M+%S") + '.json', "w") as f:
             json.dump(content, f)
             f.close()
-
-
-if __name__ == '__main__':
-    # Exercises:
-    # 1. tip toe standing
-    # 2. toe crunches
-    # 3. toe stand - TOO similar to toe crunches
-    # 4. toes UP
-    # 5. rest
-    # MyoService.restart_process()
-    # time.sleep(1)
-    # change_sample_size(100)
-
-    dummy = ClassifyExercises(
-        subject="Ervin",
-        exercises=PREDEFINED_EXERCISES,
-        batch_size=25,
-        training_batch_size=16
-    )
-
-    # dummy.PrepareTrainingData()
-    # dummy.TrainEMG()
-    # dummy.DisplayResults()
-    # dummy.PredictGestures()
-
-    # indexes: 0 - TT,
-    #          1 - TC,
-    #          2 - UP,
-    #          3 - R
-    # dummy.TestPredict(50, 3)
-    dummy.PredictAndPlay()
