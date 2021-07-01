@@ -1,9 +1,6 @@
 import os
-from enum import Enum
-
 from numpy.core.multiarray import zeros
 from pynput.keyboard import Key, KeyCode
-
 from models.exercise import Exercise
 
 data_array = []
@@ -77,9 +74,9 @@ SUPPORTED_KEYS = {
 
 PREDEFINED_REPS = ['5', '10', '15']
 PREDEFINED_EXERCISES = [
-    Exercise(name="Tip Toe", code="TT", instruction="Stand on your toes!", assigned_key=("UP", KEYS["UP"])),
-    Exercise(name="Toe Crunches", code="TC", instruction="Crunch your toes like a fist!",
-             assigned_key=("LEFT", KEYS["LEFT"])),
-    Exercise(name="Toes UP", code="UP", instruction="Move your toes up!", assigned_key=("RIGHT", KEYS["RIGHT"])),
-    Exercise(name="Rest", code="R", instruction="Rest your feet...", assigned_key=("NONE", None)),
+    Exercise(name="Tip Toe", code="TT", instruction="Stand on your toes!", assigned_key=("UP", KEYS["UP"], False)),
+    Exercise(name="Toe Clenches", code="TC", instruction="Crunch your toes like a fist!",
+             assigned_key=("LEFT", KEYS["LEFT"], True)),
+    Exercise(name="Toe Lifts", code="UP", instruction="Move your toes up!", assigned_key=("RIGHT", KEYS["RIGHT"], True)),
+    Exercise(name="Rest", code="R", instruction="Rest your feet...", assigned_key=("NONE", None, False)),
 ]

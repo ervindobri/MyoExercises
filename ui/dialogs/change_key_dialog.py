@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QPushButton, 
 from pynput.keyboard import KeyCode
 
 from constants.variables import KEYS, SUPPORTED_KEYS, MAPPED_KEYS_PATH
+from ui.custom_styles import CustomQStyles
 from ui.custom_widgets.key_monitor import KeyMonitor
 
 
@@ -17,6 +18,9 @@ class ChangeKeyDialog(QDialog):
         super(ChangeKeyDialog, self).__init__(parent)
         layout = QVBoxLayout(self)
         self.setLayout(layout)
+        self.setWindowTitle('Swap keys')
+        self.setMinimumWidth(250)
+
         widget = QWidget()
         keyLayout = QVBoxLayout()
         widget.setStyleSheet("""
@@ -34,13 +38,17 @@ class ChangeKeyDialog(QDialog):
         keyLayout.setAlignment(self.currentKeyLabel, Qt.Alignment.AlignCenter)
         widget.setLayout(keyLayout)
 
-        label = QLabel("Press a key to swap")
+        label = QLabel("Press a key to swap " + exercises[index].name)
         emptyKey = QPushButton('Use empty slot')
         emptyKey.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
+        emptyKey.setStyleSheet(CustomQStyles.outlineButtonStyle)
+        emptyKey.setFixedHeight(35)
         emptyKey.clicked.connect(self.useEmpty)
 
         acceptKey = QPushButton('Accept')
-        acceptKey.clicked.connect(self.accept)
+        acceptKey.clicked.connect(self.acceptNewKey)
+        acceptKey.setStyleSheet(CustomQStyles.buttonStyle)
+        acceptKey.setFixedHeight(35)
         acceptKey.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
 
         layout.addWidget(label)
@@ -48,7 +56,9 @@ class ChangeKeyDialog(QDialog):
         actions = QHBoxLayout()
         actions.addWidget(emptyKey)
         actions.addWidget(acceptKey)
+        actions.setContentsMargins(10, 10, 10, 10)
         layout.addLayout(actions)
+        layout.setAlignment(label, Qt.Alignment.AlignCenter)
         layout.setAlignment(widget, Qt.Alignment.AlignCenter)
         self.buttons = buttons
         self.exercises = exercises
@@ -64,7 +74,7 @@ class ChangeKeyDialog(QDialog):
         self.timer.start()
         print("Dialog init done!")
 
-    def accept(self):
+    def acceptNewKey(self):
         currentKeyScheme = [e.assigned_key for e in self.exercises]
         print(self.exercises[self.index].assigned_key)
 
@@ -98,7 +108,7 @@ class ChangeKeyDialog(QDialog):
             self.buttons[self.index].setText(list(SUPPORTED_KEYS.keys())[list(SUPPORTED_KEYS.values())
                                              .index(self.currentKey[1])])
             self.timer.stop()
-            self.close()
+            self.accept()
 
     def useEmpty(self):
         self.currentKey = ("Empty", None)

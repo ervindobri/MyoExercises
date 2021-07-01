@@ -1,5 +1,3 @@
-from random import randint
-
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QProgressBar
 

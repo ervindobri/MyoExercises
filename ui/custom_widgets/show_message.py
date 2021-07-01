@@ -10,3 +10,12 @@ class CustomMessage:
         msgBox.setText(message)
         msgBox.setStandardButtons(buttons)
         msgBox.exec()
+
+    @staticmethod
+    def showAlert(title, message, buttons: QMessageBox.StandardButtons):
+        msgBox = QMessageBox()
+        msgBox.setWindowTitle(title)
+        msgBox.setIcon(QMessageBox.Icon.Warning)
+        msgBox.setText(message)
+        msgBox.setStandardButtons(buttons)
+        msgBox.exec()

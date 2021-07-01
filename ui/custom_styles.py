@@ -1,4 +1,20 @@
 class CustomQStyles:
+    pressedKeyButtonStyle = """ QPushButton
+                    {
+                        border: 1px solid green;
+                        background-color: #7FFFD4;
+                        border-radius: 7px;
+                        margin: 5px;
+                    }
+                    """
+    keyButtonStyle = """ QPushButton
+            {
+                border: 1px solid grey;
+                background-color: white;
+                border-radius: 7px;
+                margin: 5px;
+            }
+            """
     timerStyle = """
         QTimeEdit
         {
@@ -10,11 +26,9 @@ class CustomQStyles:
         }
         QTimeEdit::down-button{
             width: 0;
-            display: none;
         }
         QTimeEdit::up-button{
             width: 0;
-            display: none;
         }
         
     """

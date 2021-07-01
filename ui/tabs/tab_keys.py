@@ -6,6 +6,7 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QWidget
 
 from constants.variables import MAPPED_KEYS_PATH
+from ui.custom_styles import CustomQStyles
 from ui.custom_widgets.key_monitor import KeyMonitor
 from ui.tabs.tab_uis.Ui_KeysPanel import Ui_KeysPanel
 
@@ -32,8 +33,10 @@ class KeysWidget(QWidget):
         self.ui.saveProfile.clicked.connect(self.saveBindings)
 
     def saveBindings(self):
+        print(str(len(self.classifyExercises.exercises)) + " exercises")
+        self.classifyExercises.SavePatientData()
         if self.classifyExercises.subject is not None:
-            key_list = [x.serialize() for x in self.classifyExercises.exercises.values()]
+            key_list = [x.serialize() for x in self.classifyExercises.exercises]
             content = {
                 self.classifyExercises.subject: key_list
             }
@@ -44,21 +47,9 @@ class KeysWidget(QWidget):
     def onTimeout(self):
         if self.monitor.released:
             for b in self.ui.buttons:
-                b.setStyleSheet(
-                    """ QPushButton
-                    {
-                        border: 1px solid grey;
-                        background-color: white;
-                    }
-                    """)
+                b.setStyleSheet(CustomQStyles.keyButtonStyle)
         else:
             for ind in range(0, len(self.ui.exercises)):
                 if self.monitor.currentKey == self.ui.exercises[ind].assigned_key[1]:
-                    self.ui.buttons[ind].setStyleSheet(
-                    """ QPushButton
-                    {
-                        border: 1px solid green;
-                        background-color: #7FFFD4;
-                    }
-                    """)
+                    self.ui.buttons[ind].setStyleSheet(CustomQStyles.pressedKeyButtonStyle)
 

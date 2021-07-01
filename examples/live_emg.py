@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 from collections import deque
-from threading import Lock, Thread
-
+from threading import Lock
 import myo
 import numpy as np
 

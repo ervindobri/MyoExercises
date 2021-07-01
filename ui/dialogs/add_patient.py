@@ -54,5 +54,6 @@ class CreatePatientDialog(QDialog):
             self.subject = self.subjectEdit.text()
             self.classifyExercises.subject = self.subject
             self.classifyExercises.age = self.ageEdit.text()
+            self.classifyExercises.exercises = []
             self.infoLabel.setText("Subject name set to " + self.subject + ", age " + self.classifyExercises.age)
-            self.close()
+            self.accept()

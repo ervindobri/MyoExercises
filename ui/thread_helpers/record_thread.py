@@ -18,6 +18,7 @@ class RecordThread(QThread):
 
     def run(self):
         # your logic here
+        # print("Recording - ", self.exercise)
         result = self.classify.RecordExercise(self.exercise)
         self.taskFinished.emit()
         self.result = result

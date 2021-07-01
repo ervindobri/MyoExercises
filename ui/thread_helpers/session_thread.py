@@ -3,12 +3,13 @@ from PyQt6 import QtCore
 from PyQt6.QtCore import QThread
 
 from services.classify import ClassifyExercises
+from models.exercise import Exercise
 
 
 class SessionThread(QThread):
-    exerciseResult = QtCore.pyqtSignal(str)
+    exerciseResult = QtCore.pyqtSignal(Exercise)
 
-    def __init__(self, classification : ClassifyExercises, parent=None):
+    def __init__(self, classification: ClassifyExercises, parent=None):
         QThread.__init__(self, parent)
         # self.queue = queue
         # self.result_queue = result_queue
@@ -19,7 +20,6 @@ class SessionThread(QThread):
         if self.classification.hub.running:
             print("Hub is running!")
         while True:
-            val, res = self.classification.Predict()
-            self.exerciseResult.emit(res)
+            val = self.classification.Predict()
+            self.exerciseResult.emit(self.classification.exercises[val])
             self.classification.PressKey(val)
-

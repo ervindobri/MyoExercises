@@ -1,23 +1,19 @@
-import json
-import os
-
 import myo
 from PyQt6.QtCore import QTimer, QSize, Qt, QTime
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QPushButton, QHBoxLayout, QComboBox, QTimeEdit
-from pynput.keyboard import KeyCode
 
-from constants.variables import KEYS, SUPPORTED_KEYS, MAPPED_KEYS_PATH, PREDEFINED_EXERCISES, PREDEFINED_REPS, \
+from constants.variables import PREDEFINED_REPS, \
     IMAGES_PATH
+from services.connection import Connection
 from ui.custom_styles import CustomQStyles
-from ui.custom_widgets.key_monitor import KeyMonitor
 from ui.thread_helpers.session_thread import SessionThread
 
 
 class SessionDialog(QDialog):
     def __init__(self, parent=None,
                  patient=None,
-                 classifyExercises = None
+                 classifyExercises=None
                  ):
         super(SessionDialog, self).__init__(parent)
         layout = QHBoxLayout(self)
@@ -40,12 +36,12 @@ class SessionDialog(QDialog):
         repsLabel.setFont(bigFont)
         pauseLabel.setFont(bigFont)
 
-        box = QComboBox()
-        box.addItems(PREDEFINED_REPS)
-        box.setStyleSheet(CustomQStyles.comboStyle)
-        box.setFixedHeight(35)
+        self.reps = QComboBox()
+        self.reps.addItems(PREDEFINED_REPS)
+        self.reps.setStyleSheet(CustomQStyles.comboStyle)
+        self.reps.setFixedHeight(35)
 
-        box.currentTextChanged.connect(self.onRepsChanged)
+        self.reps.currentTextChanged.connect(self.onRepsChanged)
 
         self.pause = QLabel()
         self.pause.setStyleSheet(CustomQStyles.comboStyle)
@@ -53,12 +49,12 @@ class SessionDialog(QDialog):
         self.pause.setText('0')
 
         options.addWidget(repsLabel)
-        options.addWidget(box)
+        options.addWidget(self.reps)
         options.addWidget(pauseLabel)
 
         options.addWidget(self.pause)
 
-        options.setAlignment(box, Qt.Alignment.AlignTop)
+        options.setAlignment(self.reps, Qt.Alignment.AlignTop)
 
         self.startButton = QPushButton('Start')
         self.startButton.setStyleSheet(CustomQStyles.buttonStyle)
@@ -94,13 +90,11 @@ class SessionDialog(QDialog):
         session.setAlignment(self.exerciseWidget, Qt.Alignment.AlignCenter)
         layout.addWidget(optionsContainer, stretch=1)
         layout.addLayout(session, stretch=2)
-        # TODO: display timer
         self.curr_time = QTime(00, 00, 00)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.time)
 
-        # TODO: session thread, start session
         self.sessionThread = SessionThread(self.classifyExercises)
         self.sessionThread.exerciseResult.connect(self.onResultExercise)
 
@@ -110,15 +104,20 @@ class SessionDialog(QDialog):
 
     def onRepsChanged(self, text):
         # update pauses
-        self.pause.setText(str(int(text)*2))
+        self.pause.setText(str(int(text) * 2))
+        if Connection.active_connection():
+            self.classifyExercises.SaveSessionData(self.reps.currentText(), self.pause.text())
+        else:
+            print("Error! Probably no internet")
 
     def onResultExercise(self, exercise):
-        self.exerciseImage.setPixmap(QPixmap(IMAGES_PATH + exercise + '.png'))
-        self.exerciseLabel.setText(exercise)
+        self.exerciseImage.setPixmap(QPixmap(IMAGES_PATH + exercise.code + '.png'))
+        self.exerciseLabel.setText(exercise.name)
 
     def startSession(self):
         if self.startButton.text() == 'Start':
             print("Starting timer and session!")
+
             self.timer.start(1000)
             self.startButton.setText('Stop')
             self.sessionThread.classification.hub = myo.Hub()

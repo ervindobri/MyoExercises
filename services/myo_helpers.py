@@ -2,8 +2,6 @@ from collections import deque
 from threading import Lock
 import myo
 import time
-
-import numpy as np
 import psutil
 import os
 

@@ -1,10 +1,7 @@
-import threading
 import time
-
 from pynput.keyboard import Key, Controller
-
 # Predefined input keys
-from constants.variables import Exercise, PREDEFINED_EXERCISES
+from constants.variables import PREDEFINED_EXERCISES
 
 
 class InputController:
@@ -17,19 +14,39 @@ class InputController:
         self.keyboard = Controller()
         self.last_key = None
 
-    def simulateKeyWithInstantRelease(self, exercise):
-        if exercise.assigned_key[1] is not None:
-            self.keyboard.press(exercise.assigned_key[1])
-            # TODO: wait a bit
-            self.keyboard.release(exercise.assigned_key[1])
+    def simulateKeyHold(self, key):
+        if self.last_key is None:
+            self.last_key = key
+            self.keyboard.press(key)
+        else:
+            if self.last_key == key:
+                print("Holding!")
+                pass
+            else:
+                print("Not holding anymore.")
+                self.keyboard.release(self.last_key)
+                self.last_key = key
+                self.keyboard.press(key)
 
-    def simulateKey(self, exercise):
-        if exercise.assigned_key[1] is not None:
-            if self.last_key is not None and self.last_key != exercise.assigned_key[1]:
-                self.keyboard.release(self.last_key) 
-            self.keyboard.press(exercise.assigned_key[1])
-            self.last_key = exercise.assigned_key[1]
-            # print(exercise.assigned_key[1], " - Key pressed successfully!")
+    def simulateKeyWithInstantRelease(self, key):
+        self.last_key = key
+        self.keyboard.press(key)
+        time.sleep(0.2)
+        self.keyboard.release(key)
+
+    def simulateKey(self, assigned_key):
+        if assigned_key[1] is not None:
+            # Hold the key
+            if assigned_key[2] == True:
+                self.simulateKeyHold(assigned_key[1])
+            # press and release after delay
+            else:
+                self.simulateKeyWithInstantRelease(assigned_key[1])
+        else:
+            if self.last_key is not None:
+                self.keyboard.release(self.last_key)
+                self.last_key = None
+
 
     def startTest(self):
         self.keyboard.press(Key.space)

@@ -1,5 +1,5 @@
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QSlider, QWidget
+from PyQt6.QtWidgets import QSlider
 
 
 class Slider(QSlider):

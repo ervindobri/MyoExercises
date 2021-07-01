@@ -1,8 +1,4 @@
-import sys
-from typing import Any
-
 from PyQt6 import QtCore, QtWidgets
-
 from pynput.keyboard import Key, Listener, KeyCode
 
 

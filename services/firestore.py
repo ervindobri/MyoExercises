@@ -1,8 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-from google.cloud.firestore_v1 import ArrayUnion
-
 from constants.variables import RESOURCES_PATH
 
 

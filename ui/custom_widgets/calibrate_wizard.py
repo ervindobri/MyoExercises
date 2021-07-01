@@ -1,8 +1,6 @@
 import functools
 import os
-from os import listdir
-from os.path import isfile, join
-
+from constants.variables import PREDEFINED_EXERCISES
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QWizard, QHBoxLayout, QWizardPage, QLabel, QPushButton, QVBoxLayout, QListWidgetItem, \
@@ -11,7 +9,6 @@ from PyQt6.QtWidgets import QWizard, QHBoxLayout, QWizardPage, QLabel, QPushButt
 from ui.custom_styles import CustomQStyles
 from ui.custom_widgets.show_message import CustomMessage
 from ui.custom_widgets.two_list_selection import TwoListSelection
-from ui.tabs.tab_uis.Ui_KeysPanel import FULL_MODEL_PATH
 from ui.thread_helpers.record_thread import RecordThread
 from ui.thread_helpers.train_thread import TrainThread
 
@@ -84,11 +81,13 @@ class CalibrateWizard(QWizard):
     def onWizardNextButton(self):
         self.setPage(1, self.page1)
         self.trained = False
-        itemsTextList = [str(self.listSelection.mInput.item(i).text())
-                         for i in range(self.listSelection.mInput.count())]
+        selectedList = [str(self.listSelection.mInput.item(i).text())
+                        for i in range(self.listSelection.mInput.count())]
+
+        itemsTextList = [x for x in PREDEFINED_EXERCISES if x.name in selectedList]
         # Update list
         if self.parent.classifyExercises is not None:
-            self.parent.classifyExercises.UpdateExerciseList(itemsTextList)
+            self.parent.classifyExercises.UpdateExerciseList(selectedList)
 
         # Set elements on UI
         self.setMinimumWidth(len(itemsTextList) * 200)
@@ -102,8 +101,8 @@ class CalibrateWizard(QWizard):
             self.buttons.append(QPushButton('Record'))
             self.recordReady.append(False)
             image = QLabel()
-            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/" + itemsTextList[i] + ".png"))
-            self.labels.append(QLabel(itemsTextList[i]))
+            image.setPixmap(QPixmap(os.getcwd() + "/resources/images/" + x.code + ".png"))
+            self.labels.append(QLabel(x.name))
             self.images.append(image)
             self.buttons[i].setFixedSize(100, 35)
             self.buttons[i].clicked.connect(functools.partial(self.onRecordExerciseButtonClicked, x, i))
@@ -117,17 +116,17 @@ class CalibrateWizard(QWizard):
             self.hLayout2.addLayout(self.exerciseLayouts[i])
 
     def onRecordExerciseButtonClicked(self, exercise, ind):
-        print("Recording - ", exercise)
+        print("Recording - ", exercise.name)
         if self.parent.classifyExercises is not None:
-            self.recordThread.exercise = exercise
+            self.recordThread.exercise = exercise.name
             self.recordThread.taskFinished.connect(functools.partial(self.recordFinished,
-                                                                     exercise,
+                                                                     exercise.code,
                                                                      ind),
                                                    Qt.ConnectionType.SingleShotConnection)
             self.recordThread.start()
             self.recordReady[ind] = False
             self.buttons[ind].setStyleSheet(CustomQStyles.recordButtonStyle)
-            self.images[ind].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise + ".png"))
+            self.images[ind].setPixmap(QPixmap(os.getcwd() + "/resources/images/" + exercise.code + ".png"))
 
     def recordFinished(self, exercise, index):
         imagePath = os.getcwd() + "/resources/images/" + exercise + ".png"
@@ -158,6 +157,9 @@ class CalibrateWizard(QWizard):
 
         else:
             print("Not all recorded!")
+            CustomMessage.showAlert("Calibration",
+                                    "Not all exercises are recorded!",
+                                    QMessageBox.StandardButtons.Ok)
 
     def onTrainFinished(self):
         self.progress.setRange(0, 1)

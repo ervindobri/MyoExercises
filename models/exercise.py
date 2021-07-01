@@ -1,6 +1,4 @@
-from pynput.keyboard import Key, KeyCode
-
-import constants.variables as GLOBALS
+from pynput.keyboard import Key
 
 
 class Exercise:

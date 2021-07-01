@@ -1,0 +1,9 @@
+1. rovid jatek komment:
+
+	- ritmus: 
+		Elveztem, azt leszxamitva hogy nem axt csinalta amit en akartam, a siznkronizalas miatt, de maga jatek az erdekes volt. Elveztem, hogy el kell talalgassam azokat. 
+		Sot, igen mivel interaktivabbnak talalom mint a szimpla feladatokat.
+		Lefoglalja a figyelmed a jatek? : Igen,lefoglalja nagyo nbele eltem magamat. El is felejtettem hogy gyakorlatokat csinalok
+	- platformer:
+		lehetne jobb is, a szinkronizacio nem nagyon talalt, bar kihivast jelentett es erdekes volt nem sikerult jol
+		nem volt iranyithato, mivel a szinkronizacio nem volt jo

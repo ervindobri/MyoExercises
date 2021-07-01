@@ -35,7 +35,11 @@ class TrainWidget(QWidget):
             self.classifyExercises,
             self.selectedPatient,
             self.infoLabel)
-        dialog.exec()
+        ret = dialog.exec()
+        # If accept, save patient data and refresh list
+        if ret == 1:
+            self.classifyExercises.SavePatientData()
+            self.ui.loadPatientList()
 
     def onSessionClicked(self):
         dialog = SessionDialog(self, self.selectedPatient, self.classifyExercises)
@@ -69,8 +73,7 @@ class TrainWidget(QWidget):
         item = self.ui.listFiles.currentItem()
         if self.classifyExercises is not None:
             name, age = item.text().split('-')
-            self.classifyExercises.subject = name
-            self.classifyExercises.age = age
+            self.classifyExercises.load_patient_data(name, age)
             self.selectedPatient = next(x for x in self.patients if x.name == name and x.age == age)
             print("Selected patient:", self.selectedPatient.name)
             self.infoLabel.setText("Subject name set to " + name + ", age " + age)

@@ -17,9 +17,8 @@ class AllKeysDialog(QDialog):
         layout.setAlignment(label, Qt.Alignment.AlignTop)
         layout.addWidget(self.list)
         self.setLayout(layout)
-        self.window().setMaximumWidth(300)
+        self.setWindowTitle('Supported Keys')
 
-    # TODO: list all supported keys
     def listAllKeys(self):
         self.list.addItems([x for x in SUPPORTED_KEYS])
     # static method to create the dialog and return (date, time, accepted)

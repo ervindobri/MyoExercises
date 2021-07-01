@@ -5,6 +5,7 @@ from os.path import isfile, join
 
 import myo
 import numpy as np
+
 from tensorflow.keras.activations import softmax, relu
 from tensorflow import keras
 from keras import regularizers
@@ -130,29 +131,28 @@ class ClassifyExercises:
         self.exercises = new_exercises
         self.number_of_gestures = len(new_exercises)
 
-    def RecordExercise(self, exercise_name):
-        hub = myo.Hub()
+    def find_exercise(self, exercise_name):
         exercise = self.exercises[0]
         index = 0
-        result = 0
         for ex in self.exercises:
             if ex.name == exercise_name:
                 exercise = ex
                 index = self.exercises.index(ex)
+        return exercise, index
 
-        print("Exercise name:", exercise.name, ", index: ", index)
+    def RecordExercise(self, exercise_name):
+        hub = myo.Hub()
+        result = 0
+        exercise, index = self.find_exercise(exercise_name)
         try:
             listener = Listener(number_of_samples)
             hub.run(listener.on_event, 3000)
             current_training_set = np.array((data_array[0]))
-            print(current_training_set)
             data_array.clear()
-            print(exercise.name, "data ready")
             result_array = self.CalculateMeanData(current_training_set)
             self.all_averages[index] = result_array
             result = 1
-        except Exception as e:
-            print(e)
+        except:
             result = 0
 
         self.hub.stop()
@@ -174,22 +174,16 @@ class ClassifyExercises:
               "exercise, training data with a nr. of ",
               self.training_batch_size, "batch size, for a total of ", self.epochs, "epochs.")
 
-        # Now we append all data in training label
-        # We iterate to make 3 finger movement labels.
+        # Create labels for training and test data
         for i in range(0, self.number_of_gestures):
             for j in range(0, int(samples)):
                 labels.append(i)
         labels = np.asarray(labels)
         print("Labels: ", labels, len(labels), type(labels))
-        # print(conc_array.shape[0])
 
         permutation_function = np.random.permutation(prepare_array.shape[0])
         total_samples = prepare_array.shape[0]
-        all_shuffled_data, all_shuffled_labels = np.zeros((total_samples, 8)), np.zeros((total_samples, 8))
-
         all_shuffled_data, all_shuffled_labels = prepare_array[permutation_function], labels[permutation_function]
-        # print(all_shuffled_data.shape)
-        # print(all_shuffled_labels.shape)
 
         number_of_training_samples = int(np.floor(0.8 * total_samples))
         number_of_validation_samples = int(total_samples - number_of_training_samples)
@@ -199,16 +193,12 @@ class ClassifyExercises:
 
         train_data = all_shuffled_data[0:number_of_training_samples, :]
         train_labels = all_shuffled_labels[0:number_of_training_samples, ]
-        print("Length of train data is ", train_data.shape)
+        print("Length of train data is ", train_data)
 
         validation_data = all_shuffled_data[number_of_training_samples:total_samples, :]
         validation_labels = all_shuffled_labels[number_of_training_samples:total_samples, ]
         # print("Length of validation data is ", validation_data.shape, " validation labels is ",
-        # validation_labels.shape)
-        # print(train_data, train_labels)
-
         print("Building model...")
-        instructions = "Building model..."
         model = keras.Sequential([
             # Input dimensions means input columns. Here we have 8 columns, one for each sensor
             keras.layers.Dense(8, activation=relu, input_dim=8, kernel_regularizer=regularizers.l2(0.1)),
@@ -217,6 +207,7 @@ class ClassifyExercises:
 
         adam_optimizer = keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
                                                amsgrad=False)
+        model.summary()
         model.compile(
             optimizer=adam_optimizer,
             loss='sparse_categorical_crossentropy',
@@ -228,12 +219,13 @@ class ClassifyExercises:
             leave_overall_progress=False,
             leave_epoch_progress=False
         )
+
         history = model.fit(train_data, train_labels, epochs=self.epochs,
                             validation_data=(validation_data, validation_labels),
                             batch_size=self.training_batch_size, verbose=0, callbacks=[tqdm_callback])
 
-        instructions = "Training model successful!"
-        print(instructions)
+        instructions = "Training model successful"
+        print(instructions, "Accuracy:", history.history['val_accuracy'][-1], " Loss:", history.history['val_loss'][-1])
 
         save_path = RESULT_PATH + MODEL_PATH + self.subject + '-' + str(self.age) + '_model.h5'
         model.save(save_path)
@@ -282,20 +274,19 @@ class ClassifyExercises:
         print("No data!")
         return False
 
+    def change_key(self, exercise):
+        try:
+            old = next(x for x in self.exercises if exercise == x)
+            old.assigned_key = exercise.assigned_key
+            print("Changed key!")
+        except Exception as e:
+            print(e)
+
     def SaveProcessedData(self, array=None):
         try:
             print("Trying  to save data...")
             if array is None:
                 array = np.concatenate(self.all_averages, axis=0)
-            with open(PATIENTS_PATH + self.subject + '-' + str(self.age) + '.json', 'w') as f:
-                exercises = [x.code for x in self.exercises]
-                content = {
-                    "Name": self.subject,
-                    "Age": self.age,
-                    "Exercises": exercises
-                }
-                json.dump(content, f)
-                f.close()
             np.savetxt(RESULT_PATH + DATA_PATH + self.subject + '-' + str(self.age) + '.txt', array, fmt='%i')
             instructions = "Saving training data successful!"
             print(instructions)
@@ -306,6 +297,21 @@ class ClassifyExercises:
             instructions = "Saving training data failed!"
             print(instructions)
 
+    def load_patient_data(self, name, age):
+        try:
+            with open(PATIENTS_PATH + name + '-' + str(age) + '.json', 'r') as f:
+                content = json.load(f)
+                self.subject = content["Name"]
+                self.age = content["Age"]
+                self.exercises = [x for x in PREDEFINED_EXERCISES if x.code in content["Exercises"]]
+                print("NEW Exercises", len(self.exercises))
+                f.close()
+        except Exception as e:
+            print(e)
+
+    def SaveSessionData(self, reps, pause):
+        self.firestore.set_session_data(reps, pause)
+
     def SavePatientData(self):
         exercises = dict((ex.code, ex.assigned_key[0]) for ex in self.exercises)
         patient = Patient(
@@ -313,6 +319,14 @@ class ClassifyExercises:
             self.age,
             exercises
         )
+        with open(PATIENTS_PATH + patient.name + '-' + str(patient.age) + '.json', 'w') as f:
+            content = {
+                "Name": patient.name,
+                "Age": patient.age,
+                "Exercises": patient.exercises
+            }
+            json.dump(content, f)
+            f.close()
         self.firestore.set_patient_data(patient)
 
     # This function plots results for validation and training data for a certain subject
@@ -436,11 +450,11 @@ class ClassifyExercises:
         predictions = self.model.predict(validation_data, batch_size=self.training_batch_size)
         predicted_value = np.argmax(predictions[0])
         streamed_data.clear()
-        return predicted_value, self.exercises[predicted_value].name
+        return predicted_value
 
     def PressKey(self, predicted_value):
-        self.input_controller.simulateKeyWithInstantRelease(self.exercises[predicted_value])
-        print("Pressed key:", self.exercises[predicted_value].name)
+        # print(self.exercise[predicted_value].assigned_key)
+        self.input_controller.simulateKey(self.exercises[predicted_value].assigned_key)
 
     def TestPredict(self, reps=50, exercise_index=0):
         import keyboard
@@ -451,11 +465,10 @@ class ClassifyExercises:
         correct_predictions = 0
         predict_average = 0.0
         # Current exercise
-        exercise = list(self.exercises.values())[exercise_index]
+        exercise = self.exercises[exercise_index]
         measured = {}
 
         listener = ForeverListener(number_of_samples)
-
         thread = threading.Thread(target=lambda: self.hub.run_forever(listener.on_event, 100))
         thread.start()
 
@@ -474,27 +487,18 @@ class ClassifyExercises:
 
                     # region STUFF
 
-                    while len(streamed_data) < number_of_samples:
+                    while len(streamed_data) < validation_samples:
                         pass
 
                     predict_start_time = time.time()
                     current_data = streamed_data[-number_of_samples:]  # get last nr_of_samples elements from list
-                    self.validation_set = np.array(current_data)
-                    self.validation_set = np.absolute(self.validation_set)
-
-                    # We add one because iterator below starts from 1
-                    batches = int(number_of_samples / self.div) + 1
-                    for i in range(1, batches):
-                        validation_averages[i - 1, :] = np.mean(self.validation_set[(i - 1) * self.div:i * self.div, :],
-                                                                axis=0)
-
-                    validation_data = validation_averages
-                    predictions = model.predict(validation_data, batch_size=validation_data.shape[1])
+                    validation_data = self.calculate_validated_data(current_data)
+                    predictions = model.predict(validation_data, batch_size=self.training_batch_size)
                     predicted_value = np.argmax(predictions[0])
                     end_time = time.time()
                     predict_execution_time = (end_time - predict_start_time) * 1000
                     execution_time = (end_time - start_time) * 1000
-                    print("Predicted exercise:", list(self.exercises.values())[predicted_value].name,
+                    print("Predicted exercise:", self.exercises[predicted_value].name,
                           " Prediction time: ", predict_execution_time, "ms, from total execution time: ",
                           execution_time, "ms")
 
@@ -502,7 +506,7 @@ class ClassifyExercises:
                         measured[count] = execution_time
                         average += execution_time
                         predict_average += predict_execution_time
-                        if exercise == list(self.exercises.values())[predicted_value]:
+                        if exercise == self.exercises[predicted_value]:
                             correct_predictions += 1
                         # endregion
                     count += 1
@@ -524,13 +528,11 @@ class ClassifyExercises:
         print("Average:", measured["Average"])
         print("Prediction Average:", measured["Prediction Average"])
         print("Accuracy per", reps, ": ", measured["Accuracy"] * 100, "%")
-        print("Saving measured data...")
-        self.SaveMeasurement(exercise, measured)
+        # self.SaveMeasurement(exercise, measured)
 
     def SaveMeasurement(self, exercise, content):
         import json
-        print("file:", MEASURED_PATH + self.subject + '-' + exercise.code + '-' + (dt.datetime.now()).strftime(
-            "%Y-%m-%d-%H+%M+%S"))
+        print("Saving measured data...")
         with open(RESULT_PATH + MEASURED_PATH + self.subject + '-' + exercise.code + '-' + (dt.datetime.now()).strftime(
                 "%Y-%m-%d-%H+%M+%S") + '.json', "w") as f:
             json.dump(content, f)

@@ -14,6 +14,7 @@ if __name__ == '__main__':
 
     dummy = ClassifyExercises(
         subject="Ervin",
+        age=22,
         exercises=PREDEFINED_EXERCISES,
         batch_size=25,
         training_batch_size=16
@@ -28,5 +29,5 @@ if __name__ == '__main__':
     #          1 - TC,
     #          2 - UP,
     #          3 - R
-    # dummy.TestPredict(50, 3)
-    dummy.PredictAndPlay()
+    dummy.TestPredict(50, 1)
+    # dummy.PredictAndPlay()

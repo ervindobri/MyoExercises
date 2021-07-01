@@ -1,11 +1,7 @@
-# 1. Import `QApplication` and all the required widgets
-import time
-
 from PyQt6.QtCore import QSize
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QLabel, QMainWindow, QStatusBar, QPushButton, QHBoxLayout, QStyle
 from PyQt6.QtWidgets import QWidget
-
 from services.classify import ClassifyExercises
 from constants.variables import PREDEFINED_EXERCISES
 from services.myo_helpers import MyoService
@@ -46,7 +42,7 @@ class HIMOApp(QMainWindow):
         self.table_widget = MainTabWidget(self)
 
         self.initUI()
-        self.setStyleSheet("background-color: white;")
+        # self.setStyleSheet("background-color: white;")
 
     def initUI(self):
         self.setWindowTitle(self.title)
