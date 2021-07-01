@@ -1,0 +1,8 @@
+{"Name": "Ervin", "Age": "22",
+  "Exercises": {
+    "TT": "UP",
+    "TC": "LEFT",
+    "UP": "RIGHT",
+    "R": "NONE"
+  }
+}
